@@ -1,12 +1,18 @@
 package com.github.recoleta.mixin.common;
 
 import com.google.common.collect.Maps;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.chunk.LevelChunk;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Right-sizes the {@code tickersInLevel} {@link HashMap} on every
@@ -19,31 +25,27 @@ import java.util.HashMap;
  * initial capacity of {@code 2} reclaims roughly 64 bytes per chunk;
  * across ~1024 loaded chunks that adds up.</p>
  *
- * <p>The redirect only fires on the field initialiser inside
- * {@code <init>}; mixin's {@code expect = 1} is set so the mod loads
- * cleanly even if a future Forge build renames or moves the call.</p>
+ * <p>The replacement happens after constructor field initialisation instead
+ * of redirecting the exact {@link Maps#newHashMap()} call. That avoids
+ * depending on the compiler's placement of field-initializer bytecode.</p>
  */
 @Mixin(LevelChunk.class)
 public abstract class LevelChunkTickersSmallMapMixin {
 
+    @Mutable
+    @Final
+    @Shadow
+    private Map<BlockPos, Object> tickersInLevel;
+
     /**
-     * Replaces the default-capacity {@link HashMap} with a 2-slot
-     * variant tuned for the typical chunk's ticker count.
+     * Replaces the default-capacity {@link HashMap} with a 2-slot variant
+     * tuned for the typical chunk's ticker count.
      *
-     * <p>Non-static because the enclosing target {@code <init>} is
-     * non-static; mixin requires the handler modifier to match.</p>
-     *
-     * @param <K> key type
-     * @param <V> value type
-     * @return a small {@link HashMap}
+     * @param ci callback info
      */
-    @Redirect(
-            method = "<init>*",
-            at = @At(value = "INVOKE", target = "Lcom/google/common/collect/Maps;newHashMap()Ljava/util/HashMap;"),
-            require = 0, expect = 1
-    )
-    private <K, V> HashMap<K, V> recoleta$smallTickerMap() {
-        return new HashMap<>(2);
+    @Inject(method = "<init>", at = @At("RETURN"))
+    private void recoleta$smallTickerMap(final CallbackInfo ci) {
+        this.tickersInLevel = new HashMap<>(2);
     }
 }
 

@@ -1,0 +1,146 @@
+package com.github.recoleta.command;
+
+import com.github.recoleta.Recoleta;
+import com.github.recoleta.config.MemoryConfig;
+import com.github.recoleta.memory.SlackTrimmer;
+import com.github.recoleta.memory.cache.RecoletaInterns;
+import com.github.recoleta.memory.gc.IncrementalCleaner;
+import com.github.recoleta.memory.gc.LowPauseScheduler;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryUsage;
+import java.util.Locale;
+
+/**
+ * Implements the {@code /recoleta memory} command tree.
+ *
+ * <p>Subcommands:</p>
+ * <ul>
+ *   <li>{@code /recoleta memory status} - prints the JVM identity, the
+ *       active GC, current heap occupancy, the configured pressure
+ *       threshold, and the size of the shared intern table.</li>
+ *   <li>{@code /recoleta memory compact} - forces an immediate slack
+ *       trim plus a full incremental-cleaner drain, then reports the
+ *       reclaimed bytes.</li>
+ *   <li>{@code /recoleta memory pressure} - dispatches the registered
+ *       pressure-eviction callbacks as if the JVM had crossed the
+ *       configured threshold. Useful for testing the whole pipeline.</li>
+ * </ul>
+ *
+ * <p>All subcommands require permission level 2 (op) so that a normal
+ * survival player cannot spam them.</p>
+ */
+public final class MemoryCommand {
+
+    /** Brigadier permission level required to invoke any subcommand. */
+    private static final int PERMISSION_LEVEL = 2;
+
+    private MemoryCommand() {
+        /* command holder - never instantiated */
+    }
+
+    /**
+     * Registers the {@code /recoleta memory} tree against a Brigadier
+     * dispatcher. Wired to {@link CommandRegistration}.
+     *
+     * @param dispatcher the dispatcher exposed by {@code RegisterCommandsEvent}
+     */
+    public static void register(final CommandDispatcher<CommandSourceStack> dispatcher) {
+        final LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(Recoleta.MODID)
+                .requires(src -> src.hasPermission(PERMISSION_LEVEL))
+                .then(Commands.literal("memory")
+                        .then(Commands.literal("status").executes(MemoryCommand::status))
+                        .then(Commands.literal("compact").executes(MemoryCommand::compact))
+                        .then(Commands.literal("pressure").executes(MemoryCommand::pressure)));
+        dispatcher.register(root);
+    }
+
+    /**
+     * Prints a human-readable status snapshot to the command source.
+     *
+     * @param ctx the Brigadier execution context
+     * @return Brigadier success code (1)
+     */
+    private static int status(final com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
+        final CommandSourceStack src = ctx.getSource();
+        final MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        final String gc = ManagementFactory.getGarbageCollectorMXBeans().stream()
+                .map(b -> b.getName())
+                .reduce((a, b) -> a + "+" + b).orElse("?");
+
+        send(src, ChatFormatting.GOLD, "Recoleta memory status");
+        send(src, ChatFormatting.GRAY, "  JVM           : " + System.getProperty("java.vm.name", "?")
+                + " " + System.getProperty("java.vm.version", "?"));
+        send(src, ChatFormatting.GRAY, "  Active GC     : " + gc);
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Heap usage    : %.1f / %.1f MiB (%.1f%%)",
+                heap.getUsed() / 1048576.0,
+                heap.getMax() / 1048576.0,
+                heap.getMax() > 0 ? 100.0 * heap.getUsed() / heap.getMax() : 0.0));
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Pressure cap  : %.0f%%   (eviction %s)",
+                MemoryConfig.PRESSURE_RATIO.get() * 100.0,
+                MemoryConfig.ENABLE_PRESSURE_EVICTION.get() ? "ENABLED" : "disabled"));
+        send(src, ChatFormatting.GRAY, "  Interned strs : " + RecoletaInterns.STRINGS.size());
+        send(src, ChatFormatting.GRAY, "  Particle cap  : " + MemoryConfig.PARTICLE_PER_TYPE_CAP.get()
+                + " (vanilla 16384)");
+        send(src, ChatFormatting.GRAY, "  Drain budget  : " + MemoryConfig.REFERENCE_DRAIN_BUDGET.get()
+                + " refs/tick");
+        return 1;
+    }
+
+    /**
+     * Forces an immediate full slack-trim plus a large reference-queue
+     * drain, then reports the reclaimed heap bytes.
+     *
+     * @param ctx the Brigadier execution context
+     * @return Brigadier success code (1)
+     */
+    private static int compact(final com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
+        final CommandSourceStack src = ctx.getSource();
+        final long before = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
+
+        SlackTrimmer.trimAllNow();
+        IncrementalCleaner.drainAll();
+
+        final long after = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
+        final long delta = before - after;
+        send(src, ChatFormatting.GREEN, String.format(Locale.ROOT,
+                "Compaction done. Heap delta: %+.2f MiB (live trim only - GC may release more later).",
+                delta / 1048576.0));
+        return 1;
+    }
+
+    /**
+     * Synthetically dispatches the heap-pressure callback chain so an
+     * operator can verify that registered eviction tasks behave
+     * correctly without having to actually pressure the heap.
+     *
+     * @param ctx the Brigadier execution context
+     * @return Brigadier success code (1)
+     */
+    private static int pressure(final com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
+        final CommandSourceStack src = ctx.getSource();
+        LowPauseScheduler.dispatch(true);
+        send(src, ChatFormatting.YELLOW, "Pressure callbacks dispatched.");
+        return 1;
+    }
+
+    /**
+     * Convenience wrapper for plain-text feedback messages.
+     *
+     * @param src    the command source
+     * @param colour the chat colour
+     * @param text   the message body
+     */
+    private static void send(final CommandSourceStack src, final ChatFormatting colour, final String text) {
+        src.sendSuccess(() -> Component.literal(text).withStyle(colour), false);
+    }
+}
+

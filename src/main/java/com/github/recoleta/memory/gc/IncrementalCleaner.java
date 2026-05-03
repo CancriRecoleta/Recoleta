@@ -72,7 +72,26 @@ public final class IncrementalCleaner {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        final int budget = MemoryConfig.REFERENCE_DRAIN_BUDGET.get();
+        drain(MemoryConfig.REFERENCE_DRAIN_BUDGET.get());
+    }
+
+    /**
+     * Drains every registered queue completely, ignoring the per-tick
+     * budget. Intended for the {@code /recoleta memory compact}
+     * command and for pressure callbacks registered on
+     * {@link LowPauseScheduler}; not suitable for use inside the
+     * server tick loop because it has no upper bound.
+     */
+    public static void drainAll() {
+        drain(Integer.MAX_VALUE);
+    }
+
+    /**
+     * Common drain implementation parameterised by per-queue budget.
+     *
+     * @param budget maximum entries to drain from each registered queue
+     */
+    private static void drain(final int budget) {
         for (final Job job : JOBS) {
             int drained = 0;
             Reference<?> ref;

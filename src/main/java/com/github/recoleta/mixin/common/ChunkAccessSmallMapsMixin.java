@@ -52,7 +52,8 @@ public abstract class ChunkAccessSmallMapsMixin {
     @Redirect(
             method = "<init>*",
             at = @At(value = "INVOKE", target = "Lcom/google/common/collect/Maps;newHashMap()Ljava/util/HashMap;"),
-            require = 0, expect = 4
+            require = 0, expect = 4,
+            remap = false
     )
     private <K, V> HashMap<K, V> recoleta$smallHashMap() {
         return new HashMap<>(4);

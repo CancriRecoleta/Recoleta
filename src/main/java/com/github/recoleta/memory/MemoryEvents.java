@@ -26,6 +26,8 @@ import java.lang.management.MemoryType;
  */
 public final class MemoryEvents {
 
+    private static boolean installed;
+
     private MemoryEvents() {
         /* utility class - never instantiated */
     }
@@ -34,7 +36,10 @@ public final class MemoryEvents {
      * Installs the watcher on every eligible old-generation pool. Safe
      * to call once during mod bootstrap; subsequent calls are no-ops.
      */
-    public static void install() {
+    public static synchronized void install() {
+        if (installed) {
+            return;
+        }
         if (!MemoryConfig.ENABLE_PRESSURE_EVICTION.get()) {
             return;
         }
@@ -62,6 +67,7 @@ public final class MemoryEvents {
                 LowPauseScheduler.dispatch(true);
             }
         }, null, null);
+        installed = true;
     }
 }
 

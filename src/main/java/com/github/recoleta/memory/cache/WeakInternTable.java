@@ -1,11 +1,13 @@
 package com.github.recoleta.memory.cache;
 
 import com.github.recoleta.memory.gc.IncrementalCleaner;
+import com.github.recoleta.memory.gc.LowPauseScheduler;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -34,7 +36,7 @@ public final class WeakInternTable<T> {
         }
     }
 
-    private final Map<T, KeyedWeakReference<T>> store = new HashMap<>();
+    private final Map<Integer, ArrayList<KeyedWeakReference<T>>> store = new HashMap<>();
     private final ReferenceQueue<T> queue = new ReferenceQueue<>();
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -44,13 +46,24 @@ public final class WeakInternTable<T> {
      */
     public WeakInternTable() {
         IncrementalCleaner.track(queue, ref -> {
+            if (!(ref instanceof KeyedWeakReference<?> keyed)) {
+                return;
+            }
             lock.lock();
             try {
-                store.values().removeIf(v -> v == ref);
+                final ArrayList<KeyedWeakReference<T>> bucket = store.get(keyed.hash);
+                if (bucket == null) {
+                    return;
+                }
+                bucket.removeIf(v -> v == ref);
+                if (bucket.isEmpty()) {
+                    store.remove(keyed.hash);
+                }
             } finally {
                 lock.unlock();
             }
         });
+        LowPauseScheduler.onPressure(this::clear);
     }
 
     /**
@@ -63,14 +76,16 @@ public final class WeakInternTable<T> {
     public T intern(final T candidate) {
         lock.lock();
         try {
-            final KeyedWeakReference<T> existing = store.get(candidate);
-            if (existing != null) {
+            final int hash = candidate.hashCode();
+            final ArrayList<KeyedWeakReference<T>> bucket = store.computeIfAbsent(hash, unused -> new ArrayList<>(1));
+            bucket.removeIf(ref -> ref.get() == null);
+            for (final KeyedWeakReference<T> existing : bucket) {
                 final T live = existing.get();
-                if (live != null) {
+                if (candidate.equals(live)) {
                     return live;
                 }
             }
-            store.put(candidate, new KeyedWeakReference<>(candidate, queue));
+            bucket.add(new KeyedWeakReference<>(candidate, queue));
             return candidate;
         } finally {
             lock.unlock();
@@ -83,7 +98,24 @@ public final class WeakInternTable<T> {
     public int size() {
         lock.lock();
         try {
-            return store.size();
+            int count = 0;
+            for (final ArrayList<KeyedWeakReference<T>> bucket : store.values()) {
+                count += bucket.size();
+            }
+            return count;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Drops all canonical entries. Existing callers keep using their current
+     * instances; future calls will repopulate the table.
+     */
+    public void clear() {
+        lock.lock();
+        try {
+            store.clear();
         } finally {
             lock.unlock();
         }

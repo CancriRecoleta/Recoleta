@@ -79,7 +79,16 @@ public final class SlackTrimmer {
         if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) return;
         if (++tickCounter < TRIM_INTERVAL_TICKS) return;
         tickCounter = 0;
+        trimAllNow();
+    }
 
+    /**
+     * Trims every currently-registered container immediately,
+     * regardless of the tick cadence. Intended for the
+     * {@code /recoleta memory compact} command and for pressure
+     * callbacks registered on {@link com.github.recoleta.memory.gc.LowPauseScheduler}.
+     */
+    public static void trimAllNow() {
         ARRAY_LISTS.removeIf(ref -> {
             final ArrayList<?> live = ref.get();
             if (live == null) return true;

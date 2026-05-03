@@ -1,14 +1,17 @@
 package com.github.recoleta.core;
 
 import com.github.recoleta.Recoleta;
+import com.github.recoleta.command.CommandRegistration;
 import com.github.recoleta.config.MemoryConfig;
 import com.github.recoleta.memory.MemoryEvents;
 import com.github.recoleta.memory.SlackTrimmer;
 import com.github.recoleta.memory.gc.IncrementalCleaner;
+import com.github.recoleta.memory.gc.LowPauseScheduler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,11 +47,36 @@ public final class ModInit {
 
         SlackTrimmer.register(forgeBus);
         IncrementalCleaner.register(forgeBus);
-        MemoryEvents.install();
+        CommandRegistration.register(forgeBus);
+        registerPressureCallbacks();
 
+        modBus.addListener(ModInit::onConfigLoaded);
         modBus.addListener(LifecycleHandler::onCommonSetup);
+    }
 
+    private static void onConfigLoaded(final ModConfigEvent.Loading event) {
+        final ModConfig config = event.getConfig();
+        if (!Recoleta.MODID.equals(config.getModId()) || config.getType() != ModConfig.Type.COMMON) {
+            return;
+        }
+        MemoryEvents.install();
         logRuntimeBanner();
+    }
+
+    /**
+     * Wires the heap-pressure dispatcher so that the
+     * {@link com.github.recoleta.memory.MemoryEvents} watcher actually
+     * causes work to happen when the JVM crosses the configured
+     * threshold. Without this method the entire pressure pipeline
+     * would be inert.
+     *
+     * <p>The two registered tasks are intentionally cheap and
+     * idempotent: trimming long-lived collection slack and draining
+     * every reference queue. Both can run repeatedly without harm.</p>
+     */
+    private static void registerPressureCallbacks() {
+        LowPauseScheduler.onPressure(SlackTrimmer::trimAllNow);
+        LowPauseScheduler.onPressure(IncrementalCleaner::drainAll);
     }
 
     /**
