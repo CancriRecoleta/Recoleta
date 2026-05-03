@@ -5,20 +5,24 @@ A pure-Java-17 memory-reduction toolkit for **Minecraft 1.20.1 Forge**.
 The mod ports the *spirit* of two JDK 25 JEPs into the running game
 without requiring a JDK 25 runtime:
 
-| JEP | Native scope (JDK 25) | Recoleta port (JDK 17) | Package |
+| JEP | Native scope (JDK 25) | Recoleta port (JDK 17) | Domain |
 |---|---|---|---|
-| 519 - Compact Object Headers   | Shrinks every object header from 12 B to 8 B | Encodes the dominant Minecraft value classes (`BlockPos`, `ChunkPos`, `SectionPos`, `AABB`) into a single primitive `long` — the per-instance footprint drops from 24-56 B to **8 B** | `memory.header` |
-| 521 - Generational Shenandoah  | Adds young/old generations to a low-pause concurrent GC | Generational object pool, bounded per-tick `ReferenceQueue` drainer and heap-pressure watcher that mimic the same low-pause / locality contract inside the mod loop | `memory.gc` |
+| 519 - Compact Object Headers   | Shrinks every object header from 12 B to 8 B | Encodes dominant Minecraft value data into compact primitive forms so typical per-instance footprint drops from 24-56 B to **8 B** | Header/value packing |
+| 521 - Generational Shenandoah  | Adds young/old generations to a low-pause concurrent GC | Uses generational reuse pools, bounded per-tick reference draining, and heap-pressure callbacks to mimic low-pause locality inside the game loop | Pooling and pressure-aware cleanup |
 
 ## Additional reduction paths
 
-* `memory.cache.SoftLruCache` &mdash; bounded LRU + soft-reference values
-* `memory.cache.WeakInternTable` &mdash; per-mod weak intern table
-* `memory.pool.MutableBlockPosPool` &mdash; thread-local generational pool of `MutableBlockPos`
-* `memory.pool.Vec3Pool` &mdash; mutable three-double slots for inner-loop arithmetic
-* `memory.SlackTrimmer` &mdash; trims `ArrayList`/`StringBuilder` slack on idle ticks
-* `memory.MemoryEvents` &mdash; subscribes to JVM old-gen pool notifications and triggers eviction
-* `mixin.client.ParticleEvictionLimitMixin` &mdash; caps the vanilla 16384 per-render-style particle queue
+* Bounded LRU with soft-reference values for cache-like workloads
+* Weak interning for repetitive strings to reduce duplicate heap copies
+* Thread-local reusable position/vector carriers for hot loops
+* Idle-time slack trimming for long-lived expandable buffers
+* Heap-pressure notifications wired to proactive eviction/reclaim callbacks
+* Per-render-style particle cap (below vanilla 16384) to reduce client memory spikes
+* Path collision caching now uses compact packed keys to reduce heavy key churn.
+* Path stepping reuses mutable vector slots to avoid transient vector allocations.
+* Spawn-distance checks use scalar math to avoid temporary geometry objects.
+* Hot spawn-position loops reuse mutable coordinate carriers instead of repeatedly allocating.
+* Small-NBT paths right-size backing maps for common tiny payloads.
 
 ## Configuration
 
