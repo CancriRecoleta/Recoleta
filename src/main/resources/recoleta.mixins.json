@@ -8,8 +8,10 @@
     "common.ChunkAccessPackedBlockPosMapsMixin",
     "common.ChunkAccessSmallMapsMixin",
     "common.CompoundTagInternKeysMixin",
+    "common.LevelChunkTicksSmallCollectionsMixin",
     "common.LevelChunkTickersSmallMapMixin",
     "common.MapItemSavedDataSmallMapsMixin",
+    "common.ProtoChunkTicksSmallCollectionsMixin",
     "common.ResourceLocationInternMixin"
   ],
   "client": [
