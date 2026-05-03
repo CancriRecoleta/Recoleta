@@ -43,9 +43,15 @@ public final class SoftLruCache<K, V> {
     private final LinkedHashMap<K, KeyedSoftReference<K, V>> store;
     private final ReferenceQueue<V> queue = new ReferenceQueue<>();
     private final ReentrantLock lock = new ReentrantLock();
+    private final IncrementalCleaner.Subscription cleanerSub;
 
     /**
      * Creates a cache with the given hard upper bound on cardinality.
+     *
+     * <p>The {@link IncrementalCleaner} subscription is retained so
+     * {@link #close()} can deregister it; otherwise the static
+     * {@code IncrementalCleaner.JOBS} list would strongly reference this
+     * cache forever.</p>
      *
      * @param maxEntries strict cardinality cap (must be positive)
      */
@@ -60,7 +66,7 @@ public final class SoftLruCache<K, V> {
                 return size() > SoftLruCache.this.maxEntries;
             }
         };
-        IncrementalCleaner.track(queue, ref -> evictStale(ref));
+        this.cleanerSub = IncrementalCleaner.track(queue, ref -> evictStale(ref));
     }
 
     /**
@@ -136,6 +142,16 @@ public final class SoftLruCache<K, V> {
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * Drops every entry and deregisters from {@link IncrementalCleaner},
+     * allowing this cache to be garbage-collected. Idempotent. The cache
+     * must not be used after {@code close()} returns.
+     */
+    public void close() {
+        cleanerSub.cancel();
+        invalidateAll();
     }
 
     /**

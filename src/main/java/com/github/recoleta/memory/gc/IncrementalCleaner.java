@@ -32,6 +32,17 @@ public final class IncrementalCleaner {
     private record Job(ReferenceQueue<?> queue, Consumer<Reference<?>> onStale) {
     }
 
+    /**
+     * Handle returned by {@link #track(ReferenceQueue, Consumer)} that lets the
+     * caller deregister its queue. Without this, dropped caches would be
+     * permanently strong-referenced via the static {@code JOBS} list.
+     */
+    @FunctionalInterface
+    public interface Subscription {
+        /** Removes the associated registration; idempotent. */
+        void cancel();
+    }
+
     private static final CopyOnWriteArrayList<Job> JOBS = new CopyOnWriteArrayList<>();
 
     private IncrementalCleaner() {
@@ -53,12 +64,16 @@ public final class IncrementalCleaner {
      * @param <T>     the referent type
      * @param queue   the queue to drain
      * @param onStale callback invoked once for each evicted reference
+     * @return cancellation handle; call {@link Subscription#cancel()} when the
+     *         owning cache is disposed to avoid leaking it through {@code JOBS}
      */
-    public static <T> void track(final ReferenceQueue<T> queue,
-                                 final Consumer<Reference<? extends T>> onStale) {
+    public static <T> Subscription track(final ReferenceQueue<T> queue,
+                                         final Consumer<Reference<? extends T>> onStale) {
         @SuppressWarnings({"unchecked", "rawtypes"})
         final Consumer<Reference<?>> erased = (Consumer) onStale;
-        JOBS.add(new Job(queue, erased));
+        final Job job = new Job(queue, erased);
+        JOBS.add(job);
+        return () -> JOBS.remove(job);
     }
 
     /**

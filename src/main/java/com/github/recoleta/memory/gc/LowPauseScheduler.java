@@ -14,6 +14,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class LowPauseScheduler {
 
+    /**
+     * Handle returned by {@link #onIdle(Runnable)} / {@link #onPressure(Runnable)}
+     * that lets a caller deregister a task. Without this, dropped caches would
+     * be permanently strong-referenced via the static task lists below.
+     */
+    @FunctionalInterface
+    public interface Subscription {
+        /** Removes the associated task; idempotent. */
+        void cancel();
+    }
+
     /** Tasks invoked when the heap returns to a comfortable occupancy. */
     private static final CopyOnWriteArrayList<Runnable> IDLE_TASKS = new CopyOnWriteArrayList<>();
 
@@ -31,18 +42,24 @@ public final class LowPauseScheduler {
      * Registers a maintenance task to run when heap pressure is low.
      *
      * @param task non-null cheap task; runs at most once per pressure cycle
+     * @return cancellation handle; call {@link Subscription#cancel()} when the
+     *         owning component is disposed
      */
-    public static void onIdle(final Runnable task) {
+    public static Subscription onIdle(final Runnable task) {
         IDLE_TASKS.add(task);
+        return () -> IDLE_TASKS.remove(task);
     }
 
     /**
      * Registers a task to run when the JVM is under heap pressure.
      *
      * @param task non-null eviction task
+     * @return cancellation handle; call {@link Subscription#cancel()} when the
+     *         owning component is disposed
      */
-    public static void onPressure(final Runnable task) {
+    public static Subscription onPressure(final Runnable task) {
         PRESSURE_TASKS.add(task);
+        return () -> PRESSURE_TASKS.remove(task);
     }
 
     /**

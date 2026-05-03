@@ -39,13 +39,20 @@ public final class WeakInternTable<T> {
     private final Map<Integer, ArrayList<KeyedWeakReference<T>>> store = new HashMap<>();
     private final ReferenceQueue<T> queue = new ReferenceQueue<>();
     private final ReentrantLock lock = new ReentrantLock();
+    private final IncrementalCleaner.Subscription cleanerSub;
+    private final LowPauseScheduler.Subscription pressureSub;
 
     /**
      * Creates an empty intern table and subscribes its reference queue
      * to the {@link IncrementalCleaner}.
+     *
+     * <p>Subscriptions are retained as fields so {@link #close()} can
+     * deregister them; otherwise the static {@code IncrementalCleaner.JOBS}
+     * and {@code LowPauseScheduler.PRESSURE_TASKS} lists would strongly
+     * reference this table forever.</p>
      */
     public WeakInternTable() {
-        IncrementalCleaner.track(queue, ref -> {
+        this.cleanerSub = IncrementalCleaner.track(queue, ref -> {
             if (!(ref instanceof KeyedWeakReference<?> keyed)) {
                 return;
             }
@@ -63,7 +70,7 @@ public final class WeakInternTable<T> {
                 lock.unlock();
             }
         });
-        LowPauseScheduler.onPressure(this::clear);
+        this.pressureSub = LowPauseScheduler.onPressure(this::clear);
     }
 
     /**
@@ -119,6 +126,18 @@ public final class WeakInternTable<T> {
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * Drops every entry and deregisters this table from
+     * {@link IncrementalCleaner} and {@link LowPauseScheduler}, allowing it
+     * to be garbage-collected. Idempotent. The table must not be used after
+     * {@code close()} returns.
+     */
+    public void close() {
+        cleanerSub.cancel();
+        pressureSub.cancel();
+        clear();
     }
 }
 
