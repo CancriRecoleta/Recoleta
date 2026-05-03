@@ -1,6 +1,6 @@
 package com.github.recoleta.mixin.common;
 
-import com.google.common.collect.Maps;
+import com.github.recoleta.memory.header.PackedBlockPosMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Final;
@@ -11,23 +11,28 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Right-sizes the {@code tickersInLevel} {@link HashMap} on every
- * {@link LevelChunk}.
+ * Stores {@link LevelChunk}'s {@code tickersInLevel} map with packed
+ * {@link BlockPos} keys.
  *
  * <p>Vanilla initialises {@code tickersInLevel = Maps.newHashMap()}
- * with the JDK default of 16 buckets &mdash; an 80-byte table on
- * 64-bit JVMs &mdash; even though the vast majority of chunks have
- * zero or one ticking block entity. Replacing the call with an
- * initial capacity of {@code 2} reclaims roughly 64 bytes per chunk;
- * across ~1024 loaded chunks that adds up.</p>
+ * &mdash; a default-capacity {@link java.util.HashMap} keyed by the
+ * 24-byte {@code BlockPos} object. Most chunks have zero or one
+ * ticking block entity, so the table itself plus the retained
+ * {@code BlockPos} keys are pure overhead.</p>
  *
- * <p>The replacement happens after constructor field initialisation instead
- * of redirecting the exact {@link Maps#newHashMap()} call. That avoids
- * depending on the compiler's placement of field-initializer bytecode.</p>
+ * <p>This mixin replaces the field with a {@link PackedBlockPosMap}
+ * sized for two entries: the public {@code Map<BlockPos, V>} contract
+ * is preserved (vanilla never re-exposes this field outside
+ * {@code LevelChunk}), but the keys are stored as the {@code long}
+ * returned by {@link BlockPos#asLong()}, eliminating the per-entry
+ * {@code BlockPos} retention.</p>
+ *
+ * <p>Replacement happens at the end of every {@code LevelChunk}
+ * constructor instead of redirecting the {@code Maps#newHashMap()}
+ * call so it does not depend on field-initializer bytecode placement.</p>
  */
 @Mixin(LevelChunk.class)
 public abstract class LevelChunkTickersSmallMapMixin {
@@ -38,14 +43,13 @@ public abstract class LevelChunkTickersSmallMapMixin {
     private Map<BlockPos, Object> tickersInLevel;
 
     /**
-     * Replaces the default-capacity {@link HashMap} with a 2-slot variant
-     * tuned for the typical chunk's ticker count.
+     * Swaps the default-capacity {@link java.util.HashMap} for a
+     * {@link PackedBlockPosMap} sized for the typical ticker count.
      *
      * @param ci callback info
      */
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void recoleta$smallTickerMap(final CallbackInfo ci) {
-        this.tickersInLevel = new HashMap<>(2);
+    private void recoleta$packTickerMap(final CallbackInfo ci) {
+        this.tickersInLevel = new PackedBlockPosMap<>(2);
     }
 }
-
