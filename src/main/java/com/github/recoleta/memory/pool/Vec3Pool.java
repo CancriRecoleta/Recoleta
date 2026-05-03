@@ -49,6 +49,35 @@ public final class Vec3Pool {
         }
     }
 
+    /**
+     * Auto-closeable wrapper around a borrowed {@link Slot} that
+     * guarantees release in a {@code try-with-resources} block.
+     *
+     * <pre>
+     *   try (Vec3Pool.Lease lease = Vec3Pool.lease()) {
+     *       lease.slot.set(x, y, z);
+     *       // ... use lease.slot ...
+     *   }
+     * </pre>
+     */
+    public static final class Lease implements AutoCloseable {
+        /** The borrowed slot; mutate freely until {@link #close()}. */
+        public final Slot slot;
+        private boolean closed;
+
+        Lease(final Slot slot) {
+            this.slot = slot;
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                release(slot);
+            }
+        }
+    }
+
     private static final ThreadLocal<GenerationalPool<Slot>> POOL =
             ThreadLocal.withInitial(() -> new GenerationalPool<>(Slot::new));
 
@@ -56,15 +85,29 @@ public final class Vec3Pool {
     private static final LongAdder RELEASE_COUNT = new LongAdder();
 
     private Vec3Pool() {
-        /* utility class - never instantiated */
+
     }
 
     /**
-     * @return a zeroed slot ready to be mutated
+     * Borrows a slot. The previous occupant's component values are
+     * preserved unmodified; callers are expected to overwrite them via
+     * {@link Slot#set(double, double, double)} before reading.
+     *
+     * @return a slot ready to be mutated
      */
     public static Slot acquire() {
         ACQUIRE_COUNT.increment();
-        return POOL.get().acquire().set(0.0D, 0.0D, 0.0D);
+        return POOL.get().acquire();
+    }
+
+    /**
+     * Convenience for {@code try-with-resources}. Equivalent to
+     * {@code new Lease(acquire())}.
+     *
+     * @return an auto-closing lease wrapping a fresh slot
+     */
+    public static Lease lease() {
+        return new Lease(acquire());
     }
 
     /**

@@ -1,9 +1,12 @@
 package com.github.recoleta.memory.gc;
 
 import com.github.recoleta.config.MemoryConfig;
+import com.github.recoleta.memory.pool.PoolRegistry;
+import net.minecraftforge.common.ForgeConfigSpec.IntValue;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -13,26 +16,34 @@ import java.util.function.Supplier;
  * release they are pushed back to the young tier. When the young tier
  * is full the oldest entry is promoted into a larger <i>old</i> tier;
  * when the old tier is full the entry is dropped and left for the
- * underlying GC to reclaim. This biases reuse towards the most
- * recently touched instances (the same locality assumption that makes
- * generational GCs effective) while bounding the resident pool size.</p>
+ * underlying GC to reclaim.</p>
  *
- * <p>Capacities are read from {@link MemoryConfig#YOUNG_POOL_CAPACITY}
- * and {@link MemoryConfig#OLD_POOL_CAPACITY}.</p>
+ * <p>Capacities are read once during construction with a bootstrap-safe
+ * fallback &mdash; this avoids the per-{@code release} {@code MemoryConfig.get()}
+ * call (which would also throw before the config is loaded) and keeps
+ * the hot path branch-free.</p>
+ *
+ * <p>Each instance auto-registers itself with {@link PoolRegistry} so
+ * pressure-driven eviction and idle-driven trimming can reach it
+ * without explicit wiring at the call site.</p>
  *
  * <p>Instances are <strong>not</strong> thread-safe; create one pool
  * per thread (or wrap externally) to avoid contention.</p>
  *
- * @param <T> the pooled object type; must be safely reusable after
- *            {@link #release(Object)}
+ * @param <T> the pooled object type
  */
 public final class GenerationalPool<T> {
 
-    /** Factory used when both tiers are empty. */
-    private final Supplier<T> factory;
+    /** Defaults used if the config spec has not been loaded yet. */
+    private static final int DEFAULT_YOUNG_CAPACITY = 256;
+    private static final int DEFAULT_OLD_CAPACITY = 64;
 
-    /** Optional reset hook invoked just before re-acquisition. */
-    private final java.util.function.Consumer<T> resetHook;
+    private final Supplier<T> factory;
+    private final Consumer<T> resetHook;
+
+    /** Cached at construction; avoids per-call config lookups. */
+    private final int youngCapacity;
+    private final int oldCapacity;
 
     private final Deque<T> young;
     private final Deque<T> old;
@@ -48,18 +59,28 @@ public final class GenerationalPool<T> {
 
     /**
      * Creates a generational pool that resets borrowed instances before
-     * returning them to the caller (for example to clear collection
-     * contents).
+     * returning them to the caller.
      *
      * @param factory   non-null supplier of fresh instances
      * @param resetHook non-null reset callback applied during {@link #acquire()}
      */
     public GenerationalPool(final Supplier<T> factory,
-                            final java.util.function.Consumer<T> resetHook) {
+                            final Consumer<T> resetHook) {
         this.factory = factory;
         this.resetHook = resetHook;
-        this.young = new ArrayDeque<>(MemoryConfig.YOUNG_POOL_CAPACITY.get());
-        this.old = new ArrayDeque<>(MemoryConfig.OLD_POOL_CAPACITY.get());
+        this.youngCapacity = readOrDefault(MemoryConfig.YOUNG_POOL_CAPACITY, DEFAULT_YOUNG_CAPACITY);
+        this.oldCapacity = readOrDefault(MemoryConfig.OLD_POOL_CAPACITY, DEFAULT_OLD_CAPACITY);
+        this.young = new ArrayDeque<>(Math.min(youngCapacity, 32));
+        this.old = new ArrayDeque<>(Math.min(oldCapacity, 16));
+        PoolRegistry.register(this);
+    }
+
+    private static int readOrDefault(final IntValue value, final int fallback) {
+        try {
+            return value.get();
+        } catch (final IllegalStateException ignored) {
+            return fallback;
+        }
     }
 
     /**
@@ -89,10 +110,10 @@ public final class GenerationalPool<T> {
      * @param instance non-null instance previously produced by {@link #acquire()}
      */
     public void release(final T instance) {
-        if (young.size() >= MemoryConfig.YOUNG_POOL_CAPACITY.get()) {
+        if (young.size() >= youngCapacity) {
             final T promoted = young.pollLast();
             if (promoted != null) {
-                if (old.size() >= MemoryConfig.OLD_POOL_CAPACITY.get()) {
+                if (old.size() >= oldCapacity) {
                     old.pollLast();
                 }
                 old.offerFirst(promoted);
@@ -102,9 +123,9 @@ public final class GenerationalPool<T> {
     }
 
     /**
-     * Drops every cached instance. Intended to be called by
-     * {@link com.github.recoleta.memory.MemoryEvents} when the JVM
-     * signals heap pressure.
+     * Drops every cached instance. Wired to
+     * {@link LowPauseScheduler#onPressure(Runnable)} via
+     * {@link PoolRegistry}.
      */
     public void evictAll() {
         young.clear();
@@ -112,17 +133,33 @@ public final class GenerationalPool<T> {
     }
 
     /**
-     * @return current young-tier occupancy
+     * Drops only the old-tier deque. Wired to
+     * {@link LowPauseScheduler#onIdle(Runnable)} via
+     * {@link PoolRegistry} so freshly released slack is released
+     * once heap pressure has subsided, without sacrificing the
+     * fast-path young tier.
      */
+    public void trim() {
+        old.clear();
+    }
+
+    /** @return current young-tier occupancy */
     public int youngSize() {
         return young.size();
     }
 
-    /**
-     * @return current old-tier occupancy
-     */
+    /** @return current old-tier occupancy */
     public int oldSize() {
         return old.size();
     }
-}
 
+    /** @return configured young-tier capacity */
+    public int youngCapacity() {
+        return youngCapacity;
+    }
+
+    /** @return configured old-tier capacity */
+    public int oldCapacity() {
+        return oldCapacity;
+    }
+}

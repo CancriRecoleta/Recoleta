@@ -1,6 +1,7 @@
 package com.github.recoleta.mixin.common;
 
 import com.github.recoleta.config.MemoryConfig;
+import com.github.recoleta.memory.RecoletaCounters;
 import com.github.recoleta.memory.header.PackedAabb;
 import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
@@ -57,14 +58,17 @@ public abstract class WalkNodeEvaluatorPackedCollisionCacheMixin {
                                                          final Object key,
                                                          final Predicate<Object> predicate) {
         if (!(key instanceof AABB box) || !MemoryConfig.ENABLE_PACKED_AABB_PATH_CACHE.get() || !recoleta$canPack(box)) {
+            RecoletaCounters.PATH_PACKED_CACHE_FALLBACK.increment();
             return map.computeIfAbsent(key, predicate);
         }
 
         final long packed = PackedAabb.pack(box, this.recoleta$originX, this.recoleta$originY, this.recoleta$originZ);
         if (this.recoleta$packedCollisionCache.containsKey(packed)) {
+            RecoletaCounters.PATH_PACKED_CACHE_HIT.increment();
             return this.recoleta$packedCollisionCache.get(packed);
         }
 
+        RecoletaCounters.PATH_PACKED_CACHE_MISS.increment();
         final boolean collides = predicate.test(box);
         this.recoleta$packedCollisionCache.put(packed, collides);
         return collides;

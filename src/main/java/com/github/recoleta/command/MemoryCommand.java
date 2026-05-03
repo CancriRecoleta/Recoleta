@@ -7,7 +7,9 @@ import com.github.recoleta.memory.cache.RecoletaInterns;
 import com.github.recoleta.memory.gc.IncrementalCleaner;
 import com.github.recoleta.memory.gc.LowPauseScheduler;
 import com.github.recoleta.memory.pool.MutableBlockPosPool;
+import com.github.recoleta.memory.pool.PoolRegistry;
 import com.github.recoleta.memory.pool.Vec3Pool;
+import com.github.recoleta.mixin.common.CapabilityDispatcherFastCompareMixin;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
@@ -97,6 +99,8 @@ public final class MemoryCommand {
         send(src, ChatFormatting.GRAY, "  Packed AABB   : " + (MemoryConfig.ENABLE_PACKED_AABB_PATH_CACHE.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, "  Spawn patch   : " + (MemoryConfig.ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, "  NBT small map : " + (MemoryConfig.ENABLE_COMPOUNDTAG_SMALL_MAPS.get() ? "ENABLED" : "disabled"));
+        send(src, ChatFormatting.GRAY, "  Cap compare   : " + (MemoryConfig.ENABLE_CAPABILITY_FAST_COMPARE.get() ? "ENABLED" : "disabled"));
+        send(src, ChatFormatting.GRAY, "  Chunk pkt list: " + (MemoryConfig.ENABLE_CHUNK_PACKET_RIGHT_SIZE.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
                 "  Pool mPos     : acq=%d rel=%d inUse~%d cached(tl)=%d",
                 MutableBlockPosPool.acquireCount(),
@@ -109,6 +113,9 @@ public final class MemoryCommand {
                 Vec3Pool.releaseCount(),
                 Vec3Pool.outstandingCount(),
                 Vec3Pool.cachedCountCurrentThread()));
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Pool aggregate: cached(all threads)=%d",
+                PoolRegistry.aggregateCachedCount()));
         return 1;
     }
 
@@ -144,6 +151,7 @@ public final class MemoryCommand {
      */
     private static int pressure(final com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
         final CommandSourceStack src = ctx.getSource();
+        LowPauseScheduler.resetEdgeState();
         LowPauseScheduler.dispatch(true);
         send(src, ChatFormatting.YELLOW, "Pressure callbacks dispatched.");
         return 1;

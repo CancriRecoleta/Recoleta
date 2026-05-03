@@ -23,6 +23,13 @@ without requiring a JDK 25 runtime:
 * Spawn-distance checks use scalar math to avoid temporary geometry objects.
 * Hot spawn-position loops reuse mutable coordinate carriers instead of repeatedly allocating.
 * Small-NBT paths right-size backing maps for common tiny payloads.
+* NBT-load paths repack freshly-decoded compounds so loaded tags carry no slack.
+* Empty list-tag containers start with a small backing array sized for typical few-entry payloads (enchantments, lore, modifier lists).
+* Capability comparison short-circuits per-entry to avoid building two full tag snapshots on every item-stack equality check.
+* Chunk streaming packets start their block-entity list at a small capacity instead of the default 10-slot one.
+
+Each reduction reports its hit count via the `/recoleta memory status`
+command so operators can verify a tuning is actually active.
 
 ## Configuration
 

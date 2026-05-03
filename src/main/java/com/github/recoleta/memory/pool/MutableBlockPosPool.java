@@ -26,6 +26,35 @@ import java.util.concurrent.atomic.LongAdder;
  */
 public final class MutableBlockPosPool {
 
+    /**
+     * Auto-closeable wrapper around a borrowed
+     * {@link BlockPos.MutableBlockPos} for {@code try-with-resources}.
+     *
+     * <pre>
+     *   try (MutableBlockPosPool.Lease lease = MutableBlockPosPool.lease()) {
+     *       lease.pos.set(x, y, z);
+     *       // ... use lease.pos ...
+     *   }
+     * </pre>
+     */
+    public static final class Lease implements AutoCloseable {
+        /** The borrowed mutable position. */
+        public final BlockPos.MutableBlockPos pos;
+        private boolean closed;
+
+        Lease(final BlockPos.MutableBlockPos pos) {
+            this.pos = pos;
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                release(pos);
+            }
+        }
+    }
+
     /** One generational pool per thread; never shared, so no synchronisation. */
     private static final ThreadLocal<GenerationalPool<BlockPos.MutableBlockPos>> POOL =
             ThreadLocal.withInitial(() -> new GenerationalPool<>(BlockPos.MutableBlockPos::new));
@@ -43,6 +72,15 @@ public final class MutableBlockPosPool {
     public static BlockPos.MutableBlockPos acquire() {
         ACQUIRE_COUNT.increment();
         return POOL.get().acquire();
+    }
+
+    /**
+     * Convenience wrapper for {@code try-with-resources} usage.
+     *
+     * @return an auto-closing lease bound to a fresh mutable position
+     */
+    public static Lease lease() {
+        return new Lease(acquire());
     }
 
     /**

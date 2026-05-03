@@ -48,6 +48,12 @@ public final class MemoryConfig {
     /** Enables small initial maps for {@code CompoundTag} creation/loading. */
     public static final BooleanValue ENABLE_COMPOUNDTAG_SMALL_MAPS;
 
+    /** Enables entry-by-entry CapabilityDispatcher comparison (no full CompoundTag build). */
+    public static final BooleanValue ENABLE_CAPABILITY_FAST_COMPARE;
+
+    /** Right-sizes block-entity list in chunk packet data on construction. */
+    public static final BooleanValue ENABLE_CHUNK_PACKET_RIGHT_SIZE;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -98,6 +104,17 @@ public final class MemoryConfig {
         ENABLE_COMPOUNDTAG_SMALL_MAPS = b
                 .comment("Right-size CompoundTag backing maps for common small-NBT workloads.")
                 .define("enableCompoundTagSmallMaps", true);
+
+        ENABLE_CAPABILITY_FAST_COMPARE = b
+                .comment("Compare CapabilityDispatcher writers entry-by-entry to avoid",
+                        "building two full CompoundTag snapshots on every ItemStack",
+                        "equality check (used by inventory/container sync paths).")
+                .define("enableCapabilityFastCompare", true);
+
+        ENABLE_CHUNK_PACKET_RIGHT_SIZE = b
+                .comment("Right-size the block-entity list inside ClientboundLevelChunkPacketData",
+                        "so it starts at a small capacity instead of the default 10 slots.")
+                .define("enableChunkPacketRightSize", true);
 
         b.pop();
         SPEC = b.build();

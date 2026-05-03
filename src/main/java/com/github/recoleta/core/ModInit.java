@@ -7,6 +7,7 @@ import com.github.recoleta.memory.MemoryEvents;
 import com.github.recoleta.memory.SlackTrimmer;
 import com.github.recoleta.memory.gc.IncrementalCleaner;
 import com.github.recoleta.memory.gc.LowPauseScheduler;
+import com.github.recoleta.memory.pool.PoolRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -43,11 +44,12 @@ public final class ModInit {
         final IEventBus modBus = ctx.getModEventBus();
         final IEventBus forgeBus = MinecraftForge.EVENT_BUS;
 
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, MemoryConfig.SPEC, "recoleta-memory.toml");
+        ModLoadingContext .get().registerConfig(ModConfig.Type.COMMON, MemoryConfig.SPEC, "recoleta-memory.toml");
 
         SlackTrimmer.register(forgeBus);
         IncrementalCleaner.register(forgeBus);
         CommandRegistration.register(forgeBus);
+        PoolRegistry.bootstrap();
         registerPressureCallbacks();
 
         modBus.addListener(ModInit::onConfigLoaded);
