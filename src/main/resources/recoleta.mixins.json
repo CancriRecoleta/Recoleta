@@ -5,6 +5,10 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "recoleta.refmap.json",
   "mixins": [
+    "common.ResourceLocationInternMixin",
+    "common.CompoundTagInternKeysMixin",
+    "common.ChunkAccessSmallMapsMixin",
+    "common.LevelChunkTickersSmallMapMixin"
   ],
   "client": [
     "client.ParticleEvictionLimitMixin"
