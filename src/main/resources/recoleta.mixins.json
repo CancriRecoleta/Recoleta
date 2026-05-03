@@ -27,7 +27,11 @@
     "common.WalkNodeEvaluatorVec3PoolMixin"
   ],
   "client": [
-    "client.ParticleEvictionLimitMixin"
+    "client.FontSetSmallMapMixin",
+    "client.ParticleEngineSmallMapsMixin",
+    "client.ParticleEvictionLimitMixin",
+    "client.SoundEngineSmallMapsMixin",
+    "client.SoundManagerSmallMapsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

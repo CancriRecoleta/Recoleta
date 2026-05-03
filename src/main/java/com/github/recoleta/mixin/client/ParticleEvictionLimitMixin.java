@@ -5,6 +5,8 @@ import com.github.recoleta.config.MemoryConfig;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -32,6 +34,7 @@ import java.util.function.Function;
  * source-visible map call avoids targeting javac's synthetic lambda
  * method directly.</p>
  */
+@OnlyIn(Dist.CLIENT)
 @Mixin(ParticleEngine.class)
 public abstract class ParticleEvictionLimitMixin {
 
