@@ -8,11 +8,18 @@
     "common.ChunkAccessPackedBlockPosMapsMixin",
     "common.ChunkAccessSmallMapsMixin",
     "common.CompoundTagInternKeysMixin",
+    "common.CompoundTagSmallMapMixin",
+    "common.CompoundTagTypeSmallMapMixin",
     "common.LevelChunkTicksSmallCollectionsMixin",
     "common.LevelChunkTickersSmallMapMixin",
     "common.MapItemSavedDataSmallMapsMixin",
+    "common.NaturalSpawnerMutableBlockPosPoolMixin",
+    "common.NaturalSpawnerSpawnDistanceMixin",
+    "common.NodeEvaluatorAccessor",
     "common.ProtoChunkTicksSmallCollectionsMixin",
-    "common.ResourceLocationInternMixin"
+    "common.ResourceLocationInternMixin",
+    "common.WalkNodeEvaluatorPackedCollisionCacheMixin",
+    "common.WalkNodeEvaluatorVec3PoolMixin"
   ],
   "client": [
     "client.ParticleEvictionLimitMixin"

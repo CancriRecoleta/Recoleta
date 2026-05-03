@@ -3,6 +3,8 @@ package com.github.recoleta.memory.pool;
 import com.github.recoleta.memory.gc.GenerationalPool;
 import net.minecraft.core.BlockPos;
 
+import java.util.concurrent.atomic.LongAdder;
+
 /**
  * Thread-local generational pool of {@link BlockPos.MutableBlockPos}.
  *
@@ -28,6 +30,9 @@ public final class MutableBlockPosPool {
     private static final ThreadLocal<GenerationalPool<BlockPos.MutableBlockPos>> POOL =
             ThreadLocal.withInitial(() -> new GenerationalPool<>(BlockPos.MutableBlockPos::new));
 
+    private static final LongAdder ACQUIRE_COUNT = new LongAdder();
+    private static final LongAdder RELEASE_COUNT = new LongAdder();
+
     private MutableBlockPosPool() {
         /* utility class - never instantiated */
     }
@@ -36,6 +41,7 @@ public final class MutableBlockPosPool {
      * @return a {@code MutableBlockPos} ready to be filled via {@link BlockPos.MutableBlockPos#set(int, int, int)}
      */
     public static BlockPos.MutableBlockPos acquire() {
+        ACQUIRE_COUNT.increment();
         return POOL.get().acquire();
     }
 
@@ -45,7 +51,25 @@ public final class MutableBlockPosPool {
      * @param pos instance previously returned from {@link #acquire()}
      */
     public static void release(final BlockPos.MutableBlockPos pos) {
+        RELEASE_COUNT.increment();
         POOL.get().release(pos);
+    }
+
+    public static long acquireCount() {
+        return ACQUIRE_COUNT.sum();
+    }
+
+    public static long releaseCount() {
+        return RELEASE_COUNT.sum();
+    }
+
+    public static long outstandingCount() {
+        return acquireCount() - releaseCount();
+    }
+
+    public static int cachedCountCurrentThread() {
+        final GenerationalPool<BlockPos.MutableBlockPos> pool = POOL.get();
+        return pool.youngSize() + pool.oldSize();
     }
 }
 

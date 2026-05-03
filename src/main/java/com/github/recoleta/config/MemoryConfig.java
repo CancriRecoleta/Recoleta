@@ -39,6 +39,15 @@ public final class MemoryConfig {
     /** Soft cap on {@code memory.gc.GenerationalPool} old-generation size. */
     public static final IntValue OLD_POOL_CAPACITY;
 
+    /** Enables packed-long collision cache keys in pathfinding (common). */
+    public static final BooleanValue ENABLE_PACKED_AABB_PATH_CACHE;
+
+    /** Enables allocation-free spawn-distance checks in natural spawning. */
+    public static final BooleanValue ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH;
+
+    /** Enables small initial maps for {@code CompoundTag} creation/loading. */
+    public static final BooleanValue ENABLE_COMPOUNDTAG_SMALL_MAPS;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -76,12 +85,45 @@ public final class MemoryConfig {
                 .comment("Soft cap on the old generation of GenerationalPool instances.")
                 .defineInRange("oldPoolCapacity", 64, 4, 65536);
 
+        ENABLE_PACKED_AABB_PATH_CACHE = b
+                .comment("Use PackedAabb long keys for WalkNodeEvaluator collision cache",
+                        "to avoid retaining many short-lived AABB instances as map keys.")
+                .define("enablePackedAabbPathCache", true);
+
+        ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH = b
+                .comment("Replace allocation-heavy spawn-distance checks in NaturalSpawner",
+                        "with equivalent scalar math (no Vec3/ChunkPos temporaries).")
+                .define("enableSpawnerDistanceAllocationPatch", true);
+
+        ENABLE_COMPOUNDTAG_SMALL_MAPS = b
+                .comment("Right-size CompoundTag backing maps for common small-NBT workloads.")
+                .define("enableCompoundTagSmallMaps", true);
+
         b.pop();
         SPEC = b.build();
     }
 
     private MemoryConfig() {
         /* config holder - never instantiated */
+    }
+
+    /**
+     * Safe accessor for very-early bootstrap call sites where Forge config
+     * has not been loaded yet. Falls back to caller-provided default.
+     */
+    public static boolean getBooleanOrDefault(final BooleanValue value, final boolean defaultValue) {
+        try {
+            return value.get();
+        } catch (final IllegalStateException ignored) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * CompoundTag paths execute during MC bootstrap before config loading.
+     */
+    public static boolean enableCompoundTagSmallMaps() {
+        return getBooleanOrDefault(ENABLE_COMPOUNDTAG_SMALL_MAPS, true);
     }
 }
 

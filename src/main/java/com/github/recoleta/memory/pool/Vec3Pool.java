@@ -3,6 +3,8 @@ package com.github.recoleta.memory.pool;
 import com.github.recoleta.memory.gc.GenerationalPool;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.concurrent.atomic.LongAdder;
+
 /**
  * Thread-local generational pool that recycles a tiny mutable
  * three-double holder for short-lived vector arithmetic.
@@ -50,6 +52,9 @@ public final class Vec3Pool {
     private static final ThreadLocal<GenerationalPool<Slot>> POOL =
             ThreadLocal.withInitial(() -> new GenerationalPool<>(Slot::new));
 
+    private static final LongAdder ACQUIRE_COUNT = new LongAdder();
+    private static final LongAdder RELEASE_COUNT = new LongAdder();
+
     private Vec3Pool() {
         /* utility class - never instantiated */
     }
@@ -58,6 +63,7 @@ public final class Vec3Pool {
      * @return a zeroed slot ready to be mutated
      */
     public static Slot acquire() {
+        ACQUIRE_COUNT.increment();
         return POOL.get().acquire().set(0.0D, 0.0D, 0.0D);
     }
 
@@ -67,7 +73,25 @@ public final class Vec3Pool {
      * @param slot instance previously returned from {@link #acquire()}
      */
     public static void release(final Slot slot) {
+        RELEASE_COUNT.increment();
         POOL.get().release(slot);
+    }
+
+    public static long acquireCount() {
+        return ACQUIRE_COUNT.sum();
+    }
+
+    public static long releaseCount() {
+        return RELEASE_COUNT.sum();
+    }
+
+    public static long outstandingCount() {
+        return acquireCount() - releaseCount();
+    }
+
+    public static int cachedCountCurrentThread() {
+        final GenerationalPool<Slot> pool = POOL.get();
+        return pool.youngSize() + pool.oldSize();
     }
 }
 

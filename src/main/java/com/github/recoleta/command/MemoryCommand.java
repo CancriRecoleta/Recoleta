@@ -6,6 +6,8 @@ import com.github.recoleta.memory.SlackTrimmer;
 import com.github.recoleta.memory.cache.RecoletaInterns;
 import com.github.recoleta.memory.gc.IncrementalCleaner;
 import com.github.recoleta.memory.gc.LowPauseScheduler;
+import com.github.recoleta.memory.pool.MutableBlockPosPool;
+import com.github.recoleta.memory.pool.Vec3Pool;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
@@ -92,6 +94,21 @@ public final class MemoryCommand {
                 + " (vanilla 16384)");
         send(src, ChatFormatting.GRAY, "  Drain budget  : " + MemoryConfig.REFERENCE_DRAIN_BUDGET.get()
                 + " refs/tick");
+        send(src, ChatFormatting.GRAY, "  Packed AABB   : " + (MemoryConfig.ENABLE_PACKED_AABB_PATH_CACHE.get() ? "ENABLED" : "disabled"));
+        send(src, ChatFormatting.GRAY, "  Spawn patch   : " + (MemoryConfig.ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH.get() ? "ENABLED" : "disabled"));
+        send(src, ChatFormatting.GRAY, "  NBT small map : " + (MemoryConfig.ENABLE_COMPOUNDTAG_SMALL_MAPS.get() ? "ENABLED" : "disabled"));
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Pool mPos     : acq=%d rel=%d inUse~%d cached(tl)=%d",
+                MutableBlockPosPool.acquireCount(),
+                MutableBlockPosPool.releaseCount(),
+                MutableBlockPosPool.outstandingCount(),
+                MutableBlockPosPool.cachedCountCurrentThread()));
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Pool vec3     : acq=%d rel=%d inUse~%d cached(tl)=%d",
+                Vec3Pool.acquireCount(),
+                Vec3Pool.releaseCount(),
+                Vec3Pool.outstandingCount(),
+                Vec3Pool.cachedCountCurrentThread()));
         return 1;
     }
 
