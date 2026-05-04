@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(curl *)",
+      "Bash(python3 -c \"import sys,json; t=json.load\\(sys.stdin\\); [print\\(e['path']\\) for e in t['tree'] if e['type']=='blob']\")",
+      "PowerShell(New-Item *)",
+      "Bash(./gradlew :common:compileJava --console=plain)",
+      "Bash(where java *)",
+      "Bash(java -version)",
+      "Read(//c/Program Files/**)",
+      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :common:compileJava --console=plain)",
+      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :forge:compileJava --console=plain)",
+      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :neoforge:compileJava --console=plain)",
+      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :fabric:compileJava --console=plain)"
+    ]
+  }
+}
