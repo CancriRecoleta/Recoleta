@@ -15,7 +15,7 @@ import java.util.HashMap;
  * {@link ParticleEngine} initialises before populating in
  * {@code registerProviders()} and during sprite set loading.
  *
- * <p>Vanilla 1.20.1 registers ~50 particle types and ~150 sprite sets.
+ * <p>Vanilla 1.19.2 registers ~50 particle types and ~150 sprite sets.
  * Both maps start at the JDK default of 16 buckets and resize three to
  * four times during initialisation, churning intermediate
  * {@code HashMap.Node[]} arrays in the young generation. Modded

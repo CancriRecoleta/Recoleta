@@ -1,6 +1,6 @@
 # Recoleta
 
-A pure-Java-17 memory-reduction toolkit for **Minecraft 1.20.1 Forge**.
+A pure-Java-17 memory-reduction toolkit for **Minecraft 1.19.2 Forge**.
 
 The mod ports the *spirit* of two JDK 25 JEPs into the running game
 without requiring a JDK 25 runtime:

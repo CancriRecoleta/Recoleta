@@ -13,7 +13,7 @@ import java.util.HashMap;
  * {@link TagLoader#load} and {@link TagLoader#build}.
  *
  * <p>Both methods start with {@code Maps.newHashMap()} and populate
- * the result map with one entry per discovered tag. Vanilla 1.20.1
+ * the result map with one entry per discovered tag. Vanilla 1.19.2
  * ships ~500 tags in the {@code tags/blocks} and {@code tags/items}
  * registries, modpacks routinely double that. The default 16-bucket
  * map resizes 6 times to reach the final 2048-bucket layout, each

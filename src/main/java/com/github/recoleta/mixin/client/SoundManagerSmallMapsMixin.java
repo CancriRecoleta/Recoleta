@@ -14,7 +14,7 @@ import java.util.HashMap;
  * Right-sizes the two long-lived {@link HashMap} fields on
  * {@link SoundManager}.
  *
- * <p>Vanilla 1.20.1 ships ~1500 distinct sound entries; mod-heavy
+ * <p>Vanilla 1.19.2 ships ~1500 distinct sound entries; mod-heavy
  * packs routinely double that. Both {@code registry}
  * ({@code Maps.newHashMap()}) and {@code soundCache}
  * ({@code new HashMap<>()}) start at the JDK default of 16 buckets

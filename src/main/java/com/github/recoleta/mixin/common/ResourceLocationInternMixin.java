@@ -20,10 +20,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * table, every duplicate vanishes; only one canonical character array
  * stays live per unique value.</p>
  *
- * <p>The mixin targets the canonical protected constructor that all
- * other {@code ResourceLocation} constructors chain into. Targeting
- * a single ctor keeps the bytecode footprint minimal while still
- * covering 100% of allocation paths.</p>
+     * <p>The mixin targets the public two-string constructor available
+     * in Minecraft 1.19.2.</p>
  *
  * <p>The interning is allocation-free for already-interned strings
  * (a single map probe), so the per-call overhead is negligible
@@ -43,7 +41,7 @@ public abstract class ResourceLocationInternMixin {
      * @return the interned, canonical instance
      */
     @ModifyVariable(
-            method = "<init>(Ljava/lang/String;Ljava/lang/String;Lnet/minecraft/resources/ResourceLocation$Dummy;)V",
+            method = "<init>(Ljava/lang/String;Ljava/lang/String;)V",
             at = @At("HEAD"),
             ordinal = 0,
             argsOnly = true
@@ -63,7 +61,7 @@ public abstract class ResourceLocationInternMixin {
      * @return the interned, canonical instance
      */
     @ModifyVariable(
-            method = "<init>(Ljava/lang/String;Ljava/lang/String;Lnet/minecraft/resources/ResourceLocation$Dummy;)V",
+            method = "<init>(Ljava/lang/String;Ljava/lang/String;)V",
             at = @At("HEAD"),
             ordinal = 1,
             argsOnly = true

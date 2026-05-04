@@ -39,7 +39,7 @@ authors = "${mod_authors}" #optional
 #displayTest="MATCH_VERSION" # MATCH_VERSION is the default if nothing is specified (#optional)
 
 # The description text for the mod (multi line!) (#mandatory)
-description = '''Recoleta is a memory-reduction toolkit for Minecraft 1.20.1 (Forge), implemented in pure Java 17. It does not require a JDK 25 runtime: instead it ports the ideas behind JEP 519 (Compact Object Headers) and JEP 521 (Generational Shenandoah) into the mod itself via packed-long value encodings, generational object pools, soft/weak caches, idle-time slack trimming and surgical mixins against vanilla allocation hotspots.'''
+description = '''Recoleta is a memory-reduction toolkit for Minecraft 1.19.2 (Forge), implemented in pure Java 17. It does not require a JDK 25 runtime: instead it ports the ideas behind JEP 519 (Compact Object Headers) and JEP 521 (Generational Shenandoah) into the mod itself via packed-long value encodings, generational object pools, soft/weak caches, idle-time slack trimming and surgical mixins against vanilla allocation hotspots.'''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies."${mod_id}"]] #optional
 # the modid of the dependency

@@ -188,7 +188,7 @@ public final class MemoryConfig {
         MODEL_BAKERY_STAGING_CAPACITY = b
                 .comment("Initial capacity for ModelBakery's four staging maps",
                         "(unbakedCache, bakedCache, topLevelModels, bakedTopLevelModels).",
-                        "Vanilla 1.20.1 ships ~3000 baked models; modded packs frequently",
+                        "Vanilla 1.19.2 ships ~3000 baked models; modded packs frequently",
                         "exceed 8000. Default 8192 covers most modded sessions in one",
                         "allocation; raise if your pack pushes past that and you see",
                         "long reload pauses.")

@@ -7,7 +7,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 /**
  * Mod entry point for Recoleta.
  *
- * <p>Recoleta is a Minecraft 1.20.1 Forge mod whose sole goal is to
+ * <p>Recoleta is a Minecraft 1.19.2 Forge mod whose sole goal is to
  * shrink the resident memory footprint and GC pressure of the running
  * JVM <strong>without requiring a JDK 25 runtime</strong>. It targets
  * the spirit of two JEPs and ports them into pure Java 17 userland

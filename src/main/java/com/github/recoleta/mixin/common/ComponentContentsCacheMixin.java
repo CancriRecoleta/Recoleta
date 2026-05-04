@@ -34,11 +34,11 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  *
  * <ul>
  *   <li>{@link LiteralContents} &mdash; cached unconditionally by text.</li>
- *   <li>{@link TranslatableContents} &mdash; cached only when
- *       {@code fallback == null} and {@code args.length == 0}, the
- *       overwhelmingly common single-arg form. Other shapes pass
- *       through unchanged because composite-key caching would have
- *       low hit rate against high lookup cost.</li>
+     *   <li>{@link TranslatableContents} &mdash; cached only when
+     *       {@code args.length == 0}, the overwhelmingly common key-only
+     *       form. Other shapes pass through unchanged because
+     *       composite-key caching would have low hit rate against high
+     *       lookup cost.</li>
  *   <li>{@link KeybindContents} &mdash; cached unconditionally by name.</li>
  * </ul>
  *
@@ -114,13 +114,12 @@ public abstract class ComponentContentsCacheMixin {
     }
 
     /**
-     * Caches the single-arg / no-fallback form. Other shapes pass
-     * through: composite caching by {@code (key, fallback, args)}
+     * Caches the no-arg form. Other shapes pass through: composite
+     * caching by {@code (key, args)}
      * would need a hash-friendly key wrapper for the {@code args}
      * array and the hit rate would be low.
      */
     private static TranslatableContents recoleta$cacheTranslatable(final TranslatableContents tc) {
-        if (tc.getFallback() != null) return tc;
         final Object[] args = tc.getArgs();
         if (args == null || args.length != 0) return tc;
         final String key = tc.getKey();

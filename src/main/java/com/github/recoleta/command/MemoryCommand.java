@@ -206,7 +206,7 @@ public final class MemoryCommand {
      * @param text   the message body
      */
     private static void send(final CommandSourceStack src, final ChatFormatting colour, final String text) {
-        src.sendSuccess(() -> Component.literal(text).withStyle(colour), false);
+        src.sendSuccess(Component.literal(text).withStyle(colour), false);
     }
 }
 
