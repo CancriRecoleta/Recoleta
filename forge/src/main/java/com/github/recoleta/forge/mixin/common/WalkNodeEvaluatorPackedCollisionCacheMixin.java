@@ -6,6 +6,7 @@ import com.github.recoleta.memory.header.PackedAabb;
 import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanFunction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.PathNavigationRegion;
@@ -18,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.function.Predicate;
 
 /**
  * Replaces the pathfinding collision-cache key from {@link AABB} object
@@ -50,13 +50,13 @@ public abstract class WalkNodeEvaluatorPackedCollisionCacheMixin {
 
     @Redirect(
             method = "hasCollisions",
-            at = @At(value = "INVOKE", target = "Lit/unimi/dsi/fastutil/objects/Object2BooleanMap;computeIfAbsent(Ljava/lang/Object;Ljava/util/function/Predicate;)Z", remap = false),
+            at = @At(value = "INVOKE", target = "Lit/unimi/dsi/fastutil/objects/Object2BooleanMap;computeIfAbsent(Ljava/lang/Object;Lit/unimi/dsi/fastutil/objects/Object2BooleanFunction;)Z", remap = false),
             require = 0,
             expect = 1
     )
     private boolean recoleta$packedCollisionCacheLookup(final Object2BooleanMap<Object> map,
                                                          final Object key,
-                                                         final Predicate<Object> predicate) {
+                                                         final Object2BooleanFunction<Object> predicate) {
         if (!(key instanceof AABB box) || !MemoryConfig.ENABLE_PACKED_AABB_PATH_CACHE.get() || !recoleta$canPack(box)) {
             RecoletaCounters.PATH_PACKED_CACHE_FALLBACK.increment();
             return map.computeIfAbsent(key, predicate);
@@ -69,7 +69,7 @@ public abstract class WalkNodeEvaluatorPackedCollisionCacheMixin {
         }
 
         RecoletaCounters.PATH_PACKED_CACHE_MISS.increment();
-        final boolean collides = predicate.test(box);
+        final boolean collides = predicate.getBoolean(box);
         this.recoleta$packedCollisionCache.put(packed, collides);
         return collides;
     }

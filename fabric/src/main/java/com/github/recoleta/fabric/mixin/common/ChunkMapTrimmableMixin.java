@@ -48,7 +48,6 @@ public abstract class ChunkMapTrimmableMixin {
     @Shadow @Final private Int2ObjectMap<?> entityMap;
     @Shadow @Final private Long2ByteMap chunkTypeCache;
     @Shadow @Final private Long2LongMap chunkSaveCooldowns;
-    @Shadow @Final private LongSet entitiesInLevel;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void recoleta$registerTrimmables(final CallbackInfo ci) {
@@ -57,14 +56,10 @@ public abstract class ChunkMapTrimmableMixin {
         SlackTrimmer.trackTrimmable(this.pendingUnloads,
                 (Long2ObjectLinkedOpenHashMap<ChunkHolder> m) -> m.trim());
 
-        // toDrop and entitiesInLevel are LongSet-typed but constructed as
-        // LongOpenHashSet; the runtime check protects against a mod
-        // swapping the implementation out.
+        // toDrop is LongSet-typed but constructed as LongOpenHashSet;
+        // the runtime check protects against a mod swapping the implementation out.
         if (this.toDrop instanceof LongOpenHashSet drop) {
             SlackTrimmer.trackTrimmable(drop, (LongOpenHashSet s) -> s.trim());
-        }
-        if (this.entitiesInLevel instanceof LongOpenHashSet inLevel) {
-            SlackTrimmer.trackTrimmable(inLevel, (LongOpenHashSet s) -> s.trim());
         }
 
         if (this.entityMap instanceof Int2ObjectOpenHashMap<?> em) {

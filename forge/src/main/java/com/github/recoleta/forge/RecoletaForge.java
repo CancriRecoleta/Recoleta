@@ -16,6 +16,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
  * delegates one-shot wiring to {@link RecoletaBootstrap}.
  */
 @Mod(Recoleta.MODID)
+@SuppressWarnings("removal") // Forge 1.21.1 keeps .get() as the only registerConfig path; ModContainer.registerConfig is NeoForge-only
 public final class RecoletaForge {
 
     public RecoletaForge() {

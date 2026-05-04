@@ -43,15 +43,11 @@ import java.util.List;
 @Mixin(ChatComponent.class)
 public abstract class ChatComponentSlackTrackMixin {
 
-    @Shadow @Final private List<String> recentChat;
     @Shadow @Final private List<GuiMessage> allMessages;
     @Shadow @Final private List<GuiMessage.Line> trimmedMessages;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void recoleta$registerChatLists(final CallbackInfo ci) {
-        if (this.recentChat instanceof ArrayList<?> a) {
-            SlackTrimmer.trackClientArrayList(a);
-        }
         if (this.allMessages instanceof ArrayList<?> a) {
             SlackTrimmer.trackClientArrayList(a);
         }

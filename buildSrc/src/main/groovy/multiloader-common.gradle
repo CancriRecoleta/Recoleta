@@ -13,6 +13,14 @@ java {
     withJavadocJar()
 }
 
+tasks.withType(Javadoc).configureEach {
+    // Stale {@link} refs (e.g. from cross-package mixin moves) and missing
+    // @param/@return tags on internal mixin code shouldn't fail the build.
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+}
+
 repositories {
     mavenCentral()
     // https://docs.gradle.org/current/userguide/declaring_repositories.html#declaring_content_exclusively_found_in_one_repository

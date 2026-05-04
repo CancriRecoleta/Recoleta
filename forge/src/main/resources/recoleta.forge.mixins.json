@@ -35,7 +35,6 @@
     "common.ResourceLocationToStringCacheMixin",
     "common.ServerFunctionLibraryRightSizeMixin",
     "common.SimpleJsonResourceReloadListenerRightSizeMixin",
-    "common.SynchedEntityDataSmallMapMixin",
     "common.TagLoaderRightSizeMixin",
     "common.WalkNodeEvaluatorPackedCollisionCacheMixin",
     "common.WalkNodeEvaluatorVec3PoolMixin"

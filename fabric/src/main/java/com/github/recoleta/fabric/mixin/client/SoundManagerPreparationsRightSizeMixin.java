@@ -2,7 +2,6 @@ package com.github.recoleta.fabric.mixin.client;
 
 import com.github.recoleta.config.MemoryConfig;
 import com.google.common.collect.Maps;
-import net.minecraft.client.sounds.SoundManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -19,7 +18,7 @@ import java.util.HashMap;
  * entry per sound event (~1500 in vanilla, more in modded packs).
  * The seven successive resize copies during reload are exactly the
  * pattern targeted by
- * {@link com.github.recoleta.mixin.common.SimpleJsonResourceReloadListenerRightSizeMixin}
+ * {@code SimpleJsonResourceReloadListenerRightSizeMixin}
  * for JSON-resource listeners; this mixin handles the bespoke
  * {@code SoundManager} code path that bypasses
  * {@code SimpleJsonResourceReloadListener}.</p>
@@ -37,7 +36,7 @@ import java.util.HashMap;
  * {@code Map.of()} (empty literal) and only re-assigned in
  * {@code listResources(...)}, so it has no slack to right-size.</p>
  */
-@Mixin(SoundManager.Preparations.class)
+@Mixin(targets = "net.minecraft.client.sounds.SoundManager$Preparations")
 public abstract class SoundManagerPreparationsRightSizeMixin {
 
     @Redirect(

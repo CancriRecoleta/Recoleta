@@ -1,5 +1,8 @@
 package com.github.recoleta.forge.mixin.common;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import net.minecraft.core.Holder;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
@@ -11,25 +14,23 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Right-sizes the {@code attributes} and {@code dirtyAttributes}
- * collections on every {@link AttributeMap}.
+ * Right-sizes the three backing collections on every {@link AttributeMap}.
  *
- * <p>Vanilla initialises both via {@code Maps.newHashMap()} /
- * {@code Sets.newHashSet()} &mdash; default capacity 16. Each
- * {@code LivingEntity} gets one {@link AttributeMap}; even a
- * fully-modded player rarely exceeds 12 attribute entries, while
- * {@code dirtyAttributes} usually holds 0-1 entries between sync
- * passes. With 1000 active living entities the wasted bucket arrays
- * cost roughly 256 KB of always-resident heap.</p>
+ * <p>Vanilla initialises {@code attributes}, {@code attributesToSync}
+ * and {@code attributesToUpdate} via fastutil default capacities (16).
+ * Each {@link net.minecraft.world.entity.LivingEntity} owns one
+ * AttributeMap; even a fully-modded player rarely exceeds 12 attribute
+ * entries and the two dirty sets usually hold 0-1 entries between
+ * sync passes. With 1000 active living entities the wasted bucket
+ * arrays cost roughly 256 KB of always-resident heap.</p>
  *
- * <p>The replacement happens at constructor return so that field
- * initializers run first and we can simply overwrite the references.</p>
+ * <p>1.21 split the original {@code dirtyAttributes} into two fields:
+ * {@code attributesToSync} (network sync candidates) and
+ * {@code attributesToUpdate} (this-tick value-change candidates).</p>
  */
 @Mixin(AttributeMap.class)
 public abstract class AttributeMapSmallMapsMixin {
@@ -37,16 +38,22 @@ public abstract class AttributeMapSmallMapsMixin {
     @Mutable
     @Final
     @Shadow
-    private Map<Attribute, AttributeInstance> attributes;
+    private Map<Holder<Attribute>, AttributeInstance> attributes;
 
     @Mutable
     @Final
     @Shadow
-    private Set<AttributeInstance> dirtyAttributes;
+    private Set<AttributeInstance> attributesToSync;
+
+    @Mutable
+    @Final
+    @Shadow
+    private Set<AttributeInstance> attributesToUpdate;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void recoleta$smallAttributeMaps(final CallbackInfo ci) {
-        this.attributes = new HashMap<>(8);
-        this.dirtyAttributes = new HashSet<>(2);
+        this.attributes = new Object2ObjectOpenHashMap<>(8);
+        this.attributesToSync = new ObjectOpenHashSet<>(2);
+        this.attributesToUpdate = new ObjectOpenHashSet<>(2);
     }
 }
