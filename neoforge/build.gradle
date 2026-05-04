@@ -17,13 +17,17 @@ neoForge {
     runs {
         configureEach {
             systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
+            systemProperty('forge.logging.markers', 'REGISTRIES')
+            logLevel = org.slf4j.event.Level.DEBUG
             ideName = "NeoForge ${it.name.capitalize()} (${project.path})" // Unify the run config names with fabric
         }
         client {
             client()
+            gameDirectory = project.file('runs/client')
         }
         data {
             data()
+            gameDirectory = project.file('runs/data')
 
             // DataGen can be run by - "./gradlew :neoforge:runData" in Terminal.
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
@@ -32,6 +36,12 @@ neoForge {
         }
         server {
             server()
+            gameDirectory = project.file('runs/server')
+            programArgument '--nogui'
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.file('runs/game-test-server')
         }
     }
     mods {

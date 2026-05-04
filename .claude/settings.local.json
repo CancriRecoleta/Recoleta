@@ -13,7 +13,8 @@
       "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :common:compileJava --console=plain)",
       "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :forge:compileJava --console=plain)",
       "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :neoforge:compileJava --console=plain)",
-      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :fabric:compileJava --console=plain)"
+      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :fabric:compileJava --console=plain)",
+      "Bash(JAVA_HOME=\"F:/Java doc/zulu21\" ./gradlew :common:compileJava :forge:compileJava :neoforge:compileJava :fabric:compileJava --console=plain)"
     ]
   }
 }
