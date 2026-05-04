@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.github.recoleta.forge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "${mod_id}.forge.refmap.json",
+  "mixins": [],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
