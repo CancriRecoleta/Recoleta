@@ -54,6 +54,18 @@ public final class MemoryConfig {
     /** Right-sizes block-entity list in chunk packet data on construction. */
     public static final BooleanValue ENABLE_CHUNK_PACKET_RIGHT_SIZE;
 
+    /** Caches {@code ResourceLocation.toString()} output via a {@code SoftLruCache}. */
+    public static final BooleanValue ENABLE_RESOURCELOCATION_TOSTRING_CACHE;
+
+    /** Bounded entry count for the {@code ResourceLocation.toString()} cache. */
+    public static final IntValue RESOURCELOCATION_TOSTRING_CACHE_SIZE;
+
+    /** Caches {@code LiteralContents} instances by text via a {@code SoftLruCache}. */
+    public static final BooleanValue ENABLE_LITERAL_CONTENTS_CACHE;
+
+    /** Bounded entry count for the {@code LiteralContents} cache. */
+    public static final IntValue LITERAL_CONTENTS_CACHE_SIZE;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -115,6 +127,34 @@ public final class MemoryConfig {
                 .comment("Right-size the block-entity list inside ClientboundLevelChunkPacketData",
                         "so it starts at a small capacity instead of the default 10 slots.")
                 .define("enableChunkPacketRightSize", true);
+
+        ENABLE_RESOURCELOCATION_TOSTRING_CACHE = b
+                .comment("Cache ResourceLocation.toString() output through a bounded SoftLruCache.",
+                        "Vanilla rebuilds the 'namespace:path' string on every call; with this on,",
+                        "repeated toString() invocations on the same ResourceLocation return the",
+                        "same String instance. Soft references let the JVM evict under heap pressure.")
+                .define("enableResourceLocationToStringCache", true);
+
+        RESOURCELOCATION_TOSTRING_CACHE_SIZE = b
+                .comment("Maximum entries kept in the ResourceLocation.toString() cache.",
+                        "The cache is bounded LRU + soft-referenced; entries beyond this count",
+                        "are dropped in least-recently-used order regardless of memory pressure.")
+                .defineInRange("resourceLocationToStringCacheSize", 4096, 256, 65536);
+
+        ENABLE_LITERAL_CONTENTS_CACHE = b
+                .comment("Canonicalise LiteralContents instances inside Component.literal(text).",
+                        "Vanilla allocates a fresh LiteralContents record on every call; with this",
+                        "on, repeated calls with the same text share the same LiteralContents object.",
+                        "MutableComponent itself is still allocated per call (it is mutable, so",
+                        "sharing is unsafe). Soft references let the JVM evict under heap pressure.")
+                .define("enableLiteralContentsCache", true);
+
+        LITERAL_CONTENTS_CACHE_SIZE = b
+                .comment("Maximum entries kept in the LiteralContents cache.",
+                        "1024 covers vanilla's well-known constant labels plus the leading working",
+                        "set of mod-supplied strings; raise if your modpack creates many distinct",
+                        "literal Components.")
+                .defineInRange("literalContentsCacheSize", 1024, 64, 16384);
 
         b.pop();
         SPEC = b.build();

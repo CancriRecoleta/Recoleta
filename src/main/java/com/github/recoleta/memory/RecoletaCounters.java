@@ -53,6 +53,30 @@ public final class RecoletaCounters {
     /** Counts {@code CapabilityDispatcher#areCompatible} early returns due to mismatch. */
     public static final LongAdder CAP_FAST_COMPARE_SHORT_CIRCUIT = new LongAdder();
 
+    /** Counts {@code ResourceLocation.toString()} cache hits. */
+    public static final LongAdder RL_TOSTRING_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code ResourceLocation.toString()} cache misses (cold compute + cache fill). */
+    public static final LongAdder RL_TOSTRING_CACHE_MISS = new LongAdder();
+
+    /** Counts {@code LiteralContents} cache hits (allocation avoided). */
+    public static final LongAdder LITERAL_CONTENTS_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code LiteralContents} cache misses (vanilla path + cache fill). */
+    public static final LongAdder LITERAL_CONTENTS_CACHE_MISS = new LongAdder();
+
+    /** Counts {@code TranslatableContents} (no-args/no-fallback form) cache hits. */
+    public static final LongAdder TRANSLATABLE_CONTENTS_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code TranslatableContents} cache misses. */
+    public static final LongAdder TRANSLATABLE_CONTENTS_CACHE_MISS = new LongAdder();
+
+    /** Counts {@code KeybindContents} cache hits. */
+    public static final LongAdder KEYBIND_CONTENTS_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code KeybindContents} cache misses. */
+    public static final LongAdder KEYBIND_CONTENTS_CACHE_MISS = new LongAdder();
+
     private RecoletaCounters() {
         /* counter holder - never instantiated */
     }

@@ -2,7 +2,9 @@ package com.github.recoleta.command;
 
 import com.github.recoleta.Recoleta;
 import com.github.recoleta.config.MemoryConfig;
+import com.github.recoleta.memory.RecoletaCounters;
 import com.github.recoleta.memory.SlackTrimmer;
+import com.github.recoleta.memory.cache.RecoletaCaches;
 import com.github.recoleta.memory.cache.RecoletaInterns;
 import com.github.recoleta.memory.gc.IncrementalCleaner;
 import com.github.recoleta.memory.gc.LowPauseScheduler;
@@ -92,6 +94,34 @@ public final class MemoryCommand {
                 MemoryConfig.PRESSURE_RATIO.get() * 100.0,
                 MemoryConfig.ENABLE_PRESSURE_EVICTION.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, "  Interned strs : " + RecoletaInterns.STRINGS.size());
+        final long rlHits = RecoletaCounters.RL_TOSTRING_CACHE_HIT.sum();
+        final long rlMisses = RecoletaCounters.RL_TOSTRING_CACHE_MISS.sum();
+        final long rlTotal = rlHits + rlMisses;
+        final double rlHitRate = rlTotal > 0 ? 100.0 * rlHits / rlTotal : 0.0;
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  RL toString$  : entries=%d hits=%d miss=%d hit-rate=%.1f%%",
+                RecoletaCaches.RL_TO_STRING.size(), rlHits, rlMisses, rlHitRate));
+        final long lcHits = RecoletaCounters.LITERAL_CONTENTS_CACHE_HIT.sum();
+        final long lcMisses = RecoletaCounters.LITERAL_CONTENTS_CACHE_MISS.sum();
+        final long lcTotal = lcHits + lcMisses;
+        final double lcHitRate = lcTotal > 0 ? 100.0 * lcHits / lcTotal : 0.0;
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Literal text$ : entries=%d hits=%d miss=%d hit-rate=%.1f%%",
+                RecoletaCaches.LITERAL_CONTENTS.size(), lcHits, lcMisses, lcHitRate));
+        final long tcHits = RecoletaCounters.TRANSLATABLE_CONTENTS_CACHE_HIT.sum();
+        final long tcMisses = RecoletaCounters.TRANSLATABLE_CONTENTS_CACHE_MISS.sum();
+        final long tcTotal = tcHits + tcMisses;
+        final double tcHitRate = tcTotal > 0 ? 100.0 * tcHits / tcTotal : 0.0;
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  I18n key$     : entries=%d hits=%d miss=%d hit-rate=%.1f%%",
+                RecoletaCaches.TRANSLATABLE_CONTENTS.size(), tcHits, tcMisses, tcHitRate));
+        final long kcHits = RecoletaCounters.KEYBIND_CONTENTS_CACHE_HIT.sum();
+        final long kcMisses = RecoletaCounters.KEYBIND_CONTENTS_CACHE_MISS.sum();
+        final long kcTotal = kcHits + kcMisses;
+        final double kcHitRate = kcTotal > 0 ? 100.0 * kcHits / kcTotal : 0.0;
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Keybind$      : entries=%d hits=%d miss=%d hit-rate=%.1f%%",
+                RecoletaCaches.KEYBIND_CONTENTS.size(), kcHits, kcMisses, kcHitRate));
         send(src, ChatFormatting.GRAY, "  Particle cap  : " + MemoryConfig.PARTICLE_PER_TYPE_CAP.get()
                 + " (vanilla 16384)");
         send(src, ChatFormatting.GRAY, "  Drain budget  : " + MemoryConfig.REFERENCE_DRAIN_BUDGET.get()
