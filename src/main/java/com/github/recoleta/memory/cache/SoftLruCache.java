@@ -1,10 +1,12 @@
 package com.github.recoleta.memory.cache;
 
 import com.github.recoleta.memory.gc.IncrementalCleaner;
+import com.github.recoleta.memory.gc.LowPauseScheduler;
 
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -14,21 +16,33 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>Entries are evicted under any of the following conditions:</p>
  * <ul>
- *   <li>The map size exceeds the configured {@code maxEntries}: the
+ *   <li>The map size exceeds the current {@code maxEntries}: the
  *       least-recently-used entry is removed (classic LRU behaviour).</li>
  *   <li>The JVM clears the soft reference under heap pressure: the
- *       stale entry is drained by
- *       {@link IncrementalCleaner}.</li>
+ *       stale entry is drained by {@link IncrementalCleaner}.</li>
+ *   <li>{@link LowPauseScheduler} fires {@code onPressure} after the
+ *       JVM crosses the configured occupancy threshold; the cache
+ *       shrinks to {@code baseMaxEntries / pressureDivisor} (default 4)
+ *       and evicts in LRU order to fit. On {@code onIdle}
+ *       it grows back to the configured {@code baseMaxEntries}.</li>
  * </ul>
  *
  * <p>The combination gives an upper bound on map cardinality while
- * still letting the JVM reclaim the largest values first when memory
- * gets tight - useful for caches of recipes, models or atlas slices.</p>
+ * letting the JVM reclaim the largest values first when memory gets
+ * tight, plus an active "shrink under pressure" loop that does not
+ * wait for the GC to opportunistically clear soft references.</p>
  *
  * @param <K> key type
  * @param <V> value type; only ever held softly
  */
 public final class SoftLruCache<K, V> {
+
+    /**
+     * Default ratio between {@code baseMaxEntries} and the shrink
+     * target on heap pressure. {@code 4} means the cache holds 25% of
+     * its base size while the JVM is over the pressure threshold.
+     */
+    private static final int DEFAULT_PRESSURE_DIVISOR = 4;
 
     /** Internal soft reference that remembers its key for queue-based eviction. */
     private static final class KeyedSoftReference<K, V> extends SoftReference<V> {
@@ -39,19 +53,22 @@ public final class SoftLruCache<K, V> {
         }
     }
 
-    private final int maxEntries;
+    private final int baseMaxEntries;
+    private volatile int maxEntries;
     private final LinkedHashMap<K, KeyedSoftReference<K, V>> store;
     private final ReferenceQueue<V> queue = new ReferenceQueue<>();
     private final ReentrantLock lock = new ReentrantLock();
     private final IncrementalCleaner.Subscription cleanerSub;
+    private final LowPauseScheduler.Subscription pressureSub;
+    private final LowPauseScheduler.Subscription idleSub;
 
     /**
      * Creates a cache with the given hard upper bound on cardinality.
      *
-     * <p>The {@link IncrementalCleaner} subscription is retained so
-     * {@link #close()} can deregister it; otherwise the static
-     * {@code IncrementalCleaner.JOBS} list would strongly reference this
-     * cache forever.</p>
+     * <p>The {@link IncrementalCleaner} and {@link LowPauseScheduler}
+     * subscriptions are retained so {@link #close()} can deregister
+     * them; otherwise the static registration lists would strongly
+     * reference this cache forever.</p>
      *
      * @param maxEntries strict cardinality cap (must be positive)
      */
@@ -59,6 +76,7 @@ public final class SoftLruCache<K, V> {
         if (maxEntries <= 0) {
             throw new IllegalArgumentException("maxEntries must be > 0");
         }
+        this.baseMaxEntries = maxEntries;
         this.maxEntries = maxEntries;
         this.store = new LinkedHashMap<>(16, 0.75F, true) {
             @Override
@@ -67,6 +85,8 @@ public final class SoftLruCache<K, V> {
             }
         };
         this.cleanerSub = IncrementalCleaner.track(queue, ref -> evictStale(ref));
+        this.pressureSub = LowPauseScheduler.onPressure(this::onPressure);
+        this.idleSub = LowPauseScheduler.onIdle(this::onIdle);
     }
 
     /**
@@ -145,13 +165,82 @@ public final class SoftLruCache<K, V> {
     }
 
     /**
-     * Drops every entry and deregisters from {@link IncrementalCleaner},
-     * allowing this cache to be garbage-collected. Idempotent. The cache
-     * must not be used after {@code close()} returns.
+     * @return the configured baseline cap; reachable cap during
+     *         heap-idle periods.
+     */
+    public int baseMaxEntries() {
+        return baseMaxEntries;
+    }
+
+    /**
+     * @return the cap currently in effect; equals
+     *         {@link #baseMaxEntries()} when the JVM is below the
+     *         configured pressure threshold.
+     */
+    public int currentMaxEntries() {
+        return maxEntries;
+    }
+
+    /**
+     * Resizes the cap and immediately evicts in LRU order down to
+     * {@code newMax} entries.
+     *
+     * <p>The natural {@code removeEldestEntry} hook only fires on
+     * {@code put}; calling this method explicitly forces eviction so
+     * shrink-under-pressure releases tenured heap right away rather
+     * than waiting for incidental {@code put} traffic.</p>
+     *
+     * @param newMax new cap; clamped to a minimum of one
+     */
+    public void resize(final int newMax) {
+        final int target = Math.max(1, newMax);
+        lock.lock();
+        try {
+            this.maxEntries = target;
+            if (store.size() <= target) {
+                return;
+            }
+            final Iterator<Map.Entry<K, KeyedSoftReference<K, V>>> it = store.entrySet().iterator();
+            // LinkedHashMap with access-order iterates from least-recently-used
+            // to most-recently-used, so iterator.remove() drops cold entries
+            // first - exactly what we want.
+            while (it.hasNext() && store.size() > target) {
+                it.next();
+                it.remove();
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Drops every entry and deregisters from {@link IncrementalCleaner}
+     * and {@link LowPauseScheduler}, allowing this cache to be
+     * garbage-collected. Idempotent. The cache must not be used after
+     * {@code close()} returns.
      */
     public void close() {
         cleanerSub.cancel();
+        pressureSub.cancel();
+        idleSub.cancel();
         invalidateAll();
+    }
+
+    /**
+     * {@link LowPauseScheduler#onPressure(Runnable) onPressure} hook:
+     * shrink to {@code baseMaxEntries / DEFAULT_PRESSURE_DIVISOR} and
+     * evict accordingly.
+     */
+    private void onPressure() {
+        resize(baseMaxEntries / DEFAULT_PRESSURE_DIVISOR);
+    }
+
+    /**
+     * {@link LowPauseScheduler#onIdle(Runnable) onIdle} hook: restore
+     * the configured cap.
+     */
+    private void onIdle() {
+        resize(baseMaxEntries);
     }
 
     /**
@@ -175,4 +264,3 @@ public final class SoftLruCache<K, V> {
         }
     }
 }
-

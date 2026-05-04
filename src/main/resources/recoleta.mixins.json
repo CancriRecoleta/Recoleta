@@ -24,6 +24,7 @@
     "common.ListTagSmallListMixin",
     "common.LivingEntityActiveEffectsSmallMapMixin",
     "common.MapItemSavedDataSmallMapsMixin",
+    "common.MutableComponentStyleInternMixin",
     "common.NaturalSpawnerMutableBlockPosPoolMixin",
     "common.NaturalSpawnerSpawnDistanceMixin",
     "common.NodeEvaluatorAccessor",

@@ -94,6 +94,7 @@ public final class MemoryCommand {
                 MemoryConfig.PRESSURE_RATIO.get() * 100.0,
                 MemoryConfig.ENABLE_PRESSURE_EVICTION.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, "  Interned strs : " + RecoletaInterns.STRINGS.size());
+        send(src, ChatFormatting.GRAY, "  Interned style: " + RecoletaInterns.STYLES.size());
         final long rlHits = RecoletaCounters.RL_TOSTRING_CACHE_HIT.sum();
         final long rlMisses = RecoletaCounters.RL_TOSTRING_CACHE_MISS.sum();
         final long rlTotal = rlHits + rlMisses;

@@ -75,6 +75,9 @@ public final class MemoryConfig {
     /** Initial capacity for {@code ModelBakery}'s four staging maps. */
     public static final IntValue MODEL_BAKERY_STAGING_CAPACITY;
 
+    /** Canonicalises {@code Style} instances attached to {@code MutableComponent}. */
+    public static final BooleanValue ENABLE_STYLE_INTERN;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -190,6 +193,16 @@ public final class MemoryConfig {
                         "allocation; raise if your pack pushes past that and you see",
                         "long reload pauses.")
                 .defineInRange("modelBakeryStagingCapacity", 8192, 256, 65536);
+
+        ENABLE_STYLE_INTERN = b
+                .comment("Canonicalise Style instances attached to MutableComponent.",
+                        "Vanilla derives a fresh Style on every withStyle/applyStyle call",
+                        "even though the resulting content is often identical to a Style",
+                        "another Component already holds. Interning collapses those duplicate",
+                        "instances; long-lived component trees retain only one Style per",
+                        "unique content. Soft references let the JVM reclaim canonical",
+                        "entries that no Component still references.")
+                .define("enableStyleIntern", true);
 
         b.pop();
         SPEC = b.build();
