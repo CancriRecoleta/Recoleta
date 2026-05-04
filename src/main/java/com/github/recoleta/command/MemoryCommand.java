@@ -122,6 +122,16 @@ public final class MemoryCommand {
         send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
                 "  Keybind$      : entries=%d hits=%d miss=%d hit-rate=%.1f%%",
                 RecoletaCaches.KEYBIND_CONTENTS.size(), kcHits, kcMisses, kcHitRate));
+        final long scTotal = RecoletaCounters.SCORE_CONTENTS_CACHE_HIT.sum() + RecoletaCounters.SCORE_CONTENTS_CACHE_MISS.sum();
+        final long selTotal = RecoletaCounters.SELECTOR_CONTENTS_CACHE_HIT.sum() + RecoletaCounters.SELECTOR_CONTENTS_CACHE_MISS.sum();
+        final long ncTotal = RecoletaCounters.NBT_CONTENTS_CACHE_HIT.sum() + RecoletaCounters.NBT_CONTENTS_CACHE_MISS.sum();
+        if (scTotal + selTotal + ncTotal > 0) {
+            send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                    "  Tellraw$      : score=%d/%d  selector=%d/%d  nbt=%d/%d (hits/total)",
+                    RecoletaCounters.SCORE_CONTENTS_CACHE_HIT.sum(), scTotal,
+                    RecoletaCounters.SELECTOR_CONTENTS_CACHE_HIT.sum(), selTotal,
+                    RecoletaCounters.NBT_CONTENTS_CACHE_HIT.sum(), ncTotal));
+        }
         send(src, ChatFormatting.GRAY, "  Particle cap  : " + MemoryConfig.PARTICLE_PER_TYPE_CAP.get()
                 + " (vanilla 16384)");
         send(src, ChatFormatting.GRAY, "  Drain budget  : " + MemoryConfig.REFERENCE_DRAIN_BUDGET.get()

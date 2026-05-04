@@ -8,6 +8,9 @@ import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.KeybindContents;
 import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.contents.NbtContents;
+import net.minecraft.network.chat.contents.ScoreContents;
+import net.minecraft.network.chat.contents.SelectorContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -85,6 +88,15 @@ public abstract class ComponentContentsCacheMixin {
         if (contents instanceof KeybindContents kc) {
             return recoleta$cacheKeybind(kc);
         }
+        if (contents instanceof ScoreContents sc) {
+            return recoleta$cacheScore(sc);
+        }
+        if (contents instanceof SelectorContents sel) {
+            return recoleta$cacheSelector(sel);
+        }
+        if (contents instanceof NbtContents nc) {
+            return recoleta$cacheNbt(nc);
+        }
         return contents;
     }
 
@@ -134,5 +146,56 @@ public abstract class ComponentContentsCacheMixin {
         RecoletaCaches.KEYBIND_CONTENTS.put(name, kc);
         RecoletaCounters.KEYBIND_CONTENTS_CACHE_MISS.increment();
         return kc;
+    }
+
+    /**
+     * Self-keyed cache: vanilla {@link ScoreContents#equals(Object)}
+     * compares {@code name} + {@code objective}, both immutable
+     * Strings, so the input record is a valid hash key. Sharing also
+     * shares the {@code EntitySelector} parsed from {@code name} in
+     * the constructor.
+     */
+    private static ScoreContents recoleta$cacheScore(final ScoreContents sc) {
+        final ScoreContents cached = RecoletaCaches.SCORE_CONTENTS.get(sc);
+        if (cached != null) {
+            RecoletaCounters.SCORE_CONTENTS_CACHE_HIT.increment();
+            return cached;
+        }
+        RecoletaCaches.SCORE_CONTENTS.put(sc, sc);
+        RecoletaCounters.SCORE_CONTENTS_CACHE_MISS.increment();
+        return sc;
+    }
+
+    /**
+     * Self-keyed cache, gated by empty separator: a non-empty
+     * separator wraps a mutable {@code Component}, which would make
+     * content equality unstable.
+     */
+    private static SelectorContents recoleta$cacheSelector(final SelectorContents sel) {
+        if (sel.getSeparator().isPresent()) return sel;
+        final SelectorContents cached = RecoletaCaches.SELECTOR_CONTENTS.get(sel);
+        if (cached != null) {
+            RecoletaCounters.SELECTOR_CONTENTS_CACHE_HIT.increment();
+            return cached;
+        }
+        RecoletaCaches.SELECTOR_CONTENTS.put(sel, sel);
+        RecoletaCounters.SELECTOR_CONTENTS_CACHE_MISS.increment();
+        return sel;
+    }
+
+    /**
+     * Self-keyed cache, gated by empty separator. Same mutable-Component
+     * caveat as {@code SelectorContents}.
+     */
+    private static NbtContents recoleta$cacheNbt(final NbtContents nc) {
+        if (nc.getSeparator().isPresent()) return nc;
+        final NbtContents cached = RecoletaCaches.NBT_CONTENTS.get(nc);
+        if (cached != null) {
+            RecoletaCounters.NBT_CONTENTS_CACHE_HIT.increment();
+            return cached;
+        }
+        RecoletaCaches.NBT_CONTENTS.put(nc, nc);
+        RecoletaCounters.NBT_CONTENTS_CACHE_MISS.increment();
+        return nc;
     }
 }

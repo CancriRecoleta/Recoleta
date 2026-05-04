@@ -3,6 +3,9 @@ package com.github.recoleta.memory.cache;
 import com.github.recoleta.config.MemoryConfig;
 import net.minecraft.network.chat.contents.KeybindContents;
 import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.contents.NbtContents;
+import net.minecraft.network.chat.contents.ScoreContents;
+import net.minecraft.network.chat.contents.SelectorContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
 
@@ -78,6 +81,37 @@ public final class RecoletaCaches {
      */
     public static final SoftLruCache<String, KeybindContents> KEYBIND_CONTENTS =
             new SoftLruCache<>(256);
+
+    /**
+     * Self-keyed cache for {@link ScoreContents} (cache key is the
+     * record itself; equality is name+objective). Sharing collapses
+     * duplicate {@code (name, objective)} pairs and lets multiple
+     * call sites share the parsed {@code EntitySelector} that the
+     * constructor builds from {@code name}.
+     *
+     * <p>Vanilla use-cases are sparse (mostly {@code /tellraw}); 256
+     * entries is plenty.</p>
+     */
+    public static final SoftLruCache<ScoreContents, ScoreContents> SCORE_CONTENTS =
+            new SoftLruCache<>(256);
+
+    /**
+     * Self-keyed cache for {@link SelectorContents}. Only used when
+     * {@code separator} is {@code Optional.empty()} &mdash; the
+     * separator is a {@link net.minecraft.network.chat.Component}
+     * which is mutable, so caching by content equality on a mutable
+     * value would be unsafe.
+     */
+    public static final SoftLruCache<SelectorContents, SelectorContents> SELECTOR_CONTENTS =
+            new SoftLruCache<>(256);
+
+    /**
+     * Self-keyed cache for {@link NbtContents}. Only cached when
+     * {@code separator} is {@code Optional.empty()} &mdash; same
+     * mutable-Component caveat as {@link #SELECTOR_CONTENTS}.
+     */
+    public static final SoftLruCache<NbtContents, NbtContents> NBT_CONTENTS =
+            new SoftLruCache<>(128);
 
     private RecoletaCaches() {
         /* singleton holder - never instantiated */

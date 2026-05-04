@@ -66,6 +66,15 @@ public final class MemoryConfig {
     /** Bounded entry count for the {@code LiteralContents} cache. */
     public static final IntValue LITERAL_CONTENTS_CACHE_SIZE;
 
+    /** Right-sizes the staging map in {@code SimpleJsonResourceReloadListener.prepare}. */
+    public static final BooleanValue ENABLE_RELOAD_LISTENER_RIGHT_SIZE;
+
+    /** Initial capacity for the reload-listener staging map. */
+    public static final IntValue RELOAD_LISTENER_STAGING_CAPACITY;
+
+    /** Initial capacity for {@code ModelBakery}'s four staging maps. */
+    public static final IntValue MODEL_BAKERY_STAGING_CAPACITY;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -155,6 +164,32 @@ public final class MemoryConfig {
                         "set of mod-supplied strings; raise if your modpack creates many distinct",
                         "literal Components.")
                 .defineInRange("literalContentsCacheSize", 1024, 64, 16384);
+
+        ENABLE_RELOAD_LISTENER_RIGHT_SIZE = b
+                .comment("Right-size the staging HashMap built inside",
+                        "SimpleJsonResourceReloadListener.prepare(). Vanilla starts at the JDK",
+                        "default of 16 buckets even though datapack directories typically hold",
+                        "hundreds to thousands of entries (recipes, advancements, loot tables,",
+                        "tags), forcing 5-8 successive resize copies during every reload. The",
+                        "right-sized map avoids that resize churn entirely.")
+                .define("enableReloadListenerRightSize", true);
+
+        RELOAD_LISTENER_STAGING_CAPACITY = b
+                .comment("Initial capacity for the reload-listener staging HashMap.",
+                        "Vanilla recipes alone are ~500; a modpack with 200+ mods can push",
+                        "individual reload listeners past 5000. 512 is a reasonable middle",
+                        "ground that still covers single-arg listeners (tags/fluids) without",
+                        "wasting much when they only hold a few dozen entries.")
+                .defineInRange("reloadListenerStagingCapacity", 512, 16, 16384);
+
+        MODEL_BAKERY_STAGING_CAPACITY = b
+                .comment("Initial capacity for ModelBakery's four staging maps",
+                        "(unbakedCache, bakedCache, topLevelModels, bakedTopLevelModels).",
+                        "Vanilla 1.20.1 ships ~3000 baked models; modded packs frequently",
+                        "exceed 8000. Default 8192 covers most modded sessions in one",
+                        "allocation; raise if your pack pushes past that and you see",
+                        "long reload pauses.")
+                .defineInRange("modelBakeryStagingCapacity", 8192, 256, 65536);
 
         b.pop();
         SPEC = b.build();

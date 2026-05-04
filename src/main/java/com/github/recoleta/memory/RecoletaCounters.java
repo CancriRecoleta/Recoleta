@@ -77,6 +77,24 @@ public final class RecoletaCounters {
     /** Counts {@code KeybindContents} cache misses. */
     public static final LongAdder KEYBIND_CONTENTS_CACHE_MISS = new LongAdder();
 
+    /** Counts {@code ScoreContents} cache hits. */
+    public static final LongAdder SCORE_CONTENTS_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code ScoreContents} cache misses. */
+    public static final LongAdder SCORE_CONTENTS_CACHE_MISS = new LongAdder();
+
+    /** Counts {@code SelectorContents} (no-separator) cache hits. */
+    public static final LongAdder SELECTOR_CONTENTS_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code SelectorContents} cache misses. */
+    public static final LongAdder SELECTOR_CONTENTS_CACHE_MISS = new LongAdder();
+
+    /** Counts {@code NbtContents} (no-separator) cache hits. */
+    public static final LongAdder NBT_CONTENTS_CACHE_HIT = new LongAdder();
+
+    /** Counts {@code NbtContents} cache misses. */
+    public static final LongAdder NBT_CONTENTS_CACHE_MISS = new LongAdder();
+
     private RecoletaCounters() {
         /* counter holder - never instantiated */
     }
