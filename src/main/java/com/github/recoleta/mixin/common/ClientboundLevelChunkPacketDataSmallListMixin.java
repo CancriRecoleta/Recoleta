@@ -29,7 +29,7 @@ public abstract class ClientboundLevelChunkPacketDataSmallListMixin {
                     target = "Lcom/google/common/collect/Lists;newArrayList()Ljava/util/ArrayList;"),
             remap = false)
     private ArrayList<Object> recoleta$smallBlockEntitiesList() {
-        if (!MemoryConfig.getBooleanOrDefault(MemoryConfig.ENABLE_CHUNK_PACKET_RIGHT_SIZE, true)) {
+        if (!MemoryConfig.cachedChunkPacketRightSize()) {
             return Lists.newArrayList();
         }
 

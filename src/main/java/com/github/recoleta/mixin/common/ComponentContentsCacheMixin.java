@@ -76,7 +76,7 @@ public abstract class ComponentContentsCacheMixin {
             argsOnly = true
     )
     private static ComponentContents recoleta$internContents(final ComponentContents contents) {
-        if (!MemoryConfig.getBooleanOrDefault(MemoryConfig.ENABLE_LITERAL_CONTENTS_CACHE, true)) {
+        if (!MemoryConfig.cachedLiteralContentsCache()) {
             return contents;
         }
         if (contents instanceof LiteralContents lc) {

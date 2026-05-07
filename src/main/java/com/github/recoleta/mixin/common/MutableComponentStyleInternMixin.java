@@ -58,7 +58,7 @@ public abstract class MutableComponentStyleInternMixin {
         if (input == null || input == Style.EMPTY) {
             return input;
         }
-        if (!MemoryConfig.getBooleanOrDefault(MemoryConfig.ENABLE_STYLE_INTERN, true)) {
+        if (!MemoryConfig.cachedStyleIntern()) {
             return input;
         }
         return RecoletaInterns.STYLES.intern(input);

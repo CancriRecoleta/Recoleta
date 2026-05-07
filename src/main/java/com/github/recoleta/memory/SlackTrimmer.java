@@ -79,6 +79,21 @@ public final class SlackTrimmer {
     private static int serverTickCounter;
     private static int clientTickCounter;
 
+    /**
+     * Cross-thread pressure-trim request flags. Set by
+     * {@link #requestPressureTrim()} (typically wired to
+     * {@link com.github.recoleta.memory.gc.LowPauseScheduler#onPressure(Runnable)}
+     * which fires from the JVM heap-notification thread or any tick),
+     * and consumed by the server / client tick handlers.
+     *
+     * <p>Volatile so the cross-thread set is visible without any
+     * synchronisation; the consume side runs on the trimmable's owning
+     * thread, eliminating the concurrent-modification hazard that the
+     * old {@link #trimAllNow()} pressure path carried.</p>
+     */
+    private static volatile boolean serverTrimRequested;
+    private static volatile boolean clientTrimRequested;
+
     private SlackTrimmer() {
         /* utility class - never instantiated */
     }
@@ -171,6 +186,12 @@ public final class SlackTrimmer {
     public static void onServerTick(final TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) return;
+        if (serverTrimRequested) {
+            serverTrimRequested = false;
+            serverTickCounter = 0;
+            trimServerNow();
+            return;
+        }
         if (++serverTickCounter < TRIM_INTERVAL_TICKS) return;
         serverTickCounter = 0;
         trimServerNow();
@@ -180,23 +201,50 @@ public final class SlackTrimmer {
     public static void onClientTick(final TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) return;
+        if (clientTrimRequested) {
+            clientTrimRequested = false;
+            clientTickCounter = 0;
+            trimClientNow();
+            return;
+        }
         if (++clientTickCounter < TRIM_INTERVAL_TICKS) return;
         clientTickCounter = 0;
         trimClientNow();
     }
 
     /**
+     * Records a request to compact every registered container at the
+     * earliest safe opportunity. Intended for heap-pressure callbacks
+     * fired from off-tick threads (the JVM {@code MemoryMXBean}
+     * notification thread in particular).
+     *
+     * <p>The actual trimming runs on the next server / client tick END
+     * phase, on the same thread that owns the registered collections.
+     * This eliminates the concurrent-modification hazard that the old
+     * {@link #trimAllNow()} pressure path carried, where trimming
+     * fastutil hash tables from the wrong thread could tear their
+     * internal state.</p>
+     *
+     * <p>Idempotent: setting an already-set flag is a no-op. Safe to
+     * call from any thread.</p>
+     */
+    public static void requestPressureTrim() {
+        serverTrimRequested = true;
+        clientTrimRequested = true;
+    }
+
+    /**
      * Trims every currently-registered container immediately,
      * regardless of side or tick cadence. Intended for the
-     * {@code /recoleta memory compact} command and for pressure
-     * callbacks registered on
-     * {@link com.github.recoleta.memory.gc.LowPauseScheduler}.
+     * {@code /recoleta memory compact} command, which always executes
+     * on the server thread.
      *
-     * <p>The pressure-callback path inherits the same caveat that the
-     * existing single-list implementation had: the JVM's notification
-     * thread is neither the server nor the client thread, so trimming
-     * from there races with concurrent modification. Treat it as a
-     * best-effort cleanup, not a hard guarantee.</p>
+     * <p><b>Thread-safety:</b> only safe to call from the server
+     * thread, because the client-side pass mutates client-thread
+     * collections concurrently with the render loop. For pressure
+     * eviction triggered from off-tick threads, use
+     * {@link #requestPressureTrim()} instead, which defers the work
+     * to the next safe tick.</p>
      */
     public static void trimAllNow() {
         trimServerNow();

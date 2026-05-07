@@ -51,7 +51,7 @@ public abstract class ResourceLocationToStringCacheMixin {
      */
     @Inject(method = "toString", at = @At("HEAD"), cancellable = true)
     private void recoleta$toStringCacheHit(final CallbackInfoReturnable<String> cir) {
-        if (!MemoryConfig.getBooleanOrDefault(MemoryConfig.ENABLE_RESOURCELOCATION_TOSTRING_CACHE, true)) {
+        if (!MemoryConfig.cachedRlToStringCache()) {
             return;
         }
         final ResourceLocation self = (ResourceLocation) (Object) this;
@@ -71,7 +71,7 @@ public abstract class ResourceLocationToStringCacheMixin {
      */
     @Inject(method = "toString", at = @At("RETURN"))
     private void recoleta$toStringCacheFill(final CallbackInfoReturnable<String> cir) {
-        if (!MemoryConfig.getBooleanOrDefault(MemoryConfig.ENABLE_RESOURCELOCATION_TOSTRING_CACHE, true)) {
+        if (!MemoryConfig.cachedRlToStringCache()) {
             return;
         }
         final ResourceLocation self = (ResourceLocation) (Object) this;

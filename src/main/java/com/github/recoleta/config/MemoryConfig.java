@@ -78,6 +78,9 @@ public final class MemoryConfig {
     /** Canonicalises {@code Style} instances attached to {@code MutableComponent}. */
     public static final BooleanValue ENABLE_STYLE_INTERN;
 
+    /** Initial capacity for ForgeRegistry's four HashBiMap fields. */
+    public static final IntValue FORGE_REGISTRY_BIMAP_CAPACITY;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -204,6 +207,15 @@ public final class MemoryConfig {
                         "entries that no Component still references.")
                 .define("enableStyleIntern", true);
 
+        FORGE_REGISTRY_BIMAP_CAPACITY = b
+                .comment("Initial capacity of the four HashBiMap fields on every ForgeRegistry.",
+                        "Vanilla starts each at 16 buckets and resizes seven times to reach",
+                        "the ~2048-bucket layout needed by the largest 1.20.1 registries",
+                        "(Block, Item, SoundEvent). 1024 absorbs all vanilla content in one",
+                        "allocation; raise if your modpack pushes a single registry past 1500",
+                        "entries and you observe extra resize churn during startup.")
+                .defineInRange("forgeRegistryBiMapCapacity", 1024, 16, 65536);
+
         b.pop();
         SPEC = b.build();
     }
@@ -229,6 +241,86 @@ public final class MemoryConfig {
      */
     public static boolean enableCompoundTagSmallMaps() {
         return getBooleanOrDefault(ENABLE_COMPOUNDTAG_SMALL_MAPS, true);
+    }
+
+    // ----------------------------------------------------------------
+    // Cached hot-path accessors.
+    //
+    // The fields below mirror selected boolean toggles for mixins that
+    // hit them on every chunk-tick / packet / component allocation.
+    // Reading a {@code volatile boolean} is one load, whereas resolving
+    // a Forge {@code BooleanValue} walks a TOML-backed cache map and
+    // takes orders of magnitude longer. The cache is refreshed by
+    // {@link #refreshHotPathCache()} from {@code ModInit} on every
+    // config (re)load, so toggling values at runtime still takes
+    // effect on the next reload tick.
+    //
+    // Defaults match the {@code defineXxx} default values declared in
+    // the static initialiser; this keeps the cached accessors safe to
+    // call before {@link #refreshHotPathCache()} has run for the first
+    // time (notably during the very early class-load phase where some
+    // mixins fire on bootstrap).
+    // ----------------------------------------------------------------
+
+    private static volatile boolean cachedPackedAabbPathCache = true;
+    private static volatile boolean cachedCapabilityFastCompare = true;
+    private static volatile boolean cachedRlToStringCache = true;
+    private static volatile boolean cachedLiteralContentsCache = true;
+    private static volatile boolean cachedStyleIntern = true;
+    private static volatile boolean cachedSpawnerDistancePatch = true;
+    private static volatile boolean cachedChunkPacketRightSize = true;
+
+    /** @return the cached value of {@link #ENABLE_PACKED_AABB_PATH_CACHE}. */
+    public static boolean cachedPackedAabbPathCache() {
+        return cachedPackedAabbPathCache;
+    }
+
+    /** @return the cached value of {@link #ENABLE_CAPABILITY_FAST_COMPARE}. */
+    public static boolean cachedCapabilityFastCompare() {
+        return cachedCapabilityFastCompare;
+    }
+
+    /** @return the cached value of {@link #ENABLE_RESOURCELOCATION_TOSTRING_CACHE}. */
+    public static boolean cachedRlToStringCache() {
+        return cachedRlToStringCache;
+    }
+
+    /** @return the cached value of {@link #ENABLE_LITERAL_CONTENTS_CACHE}. */
+    public static boolean cachedLiteralContentsCache() {
+        return cachedLiteralContentsCache;
+    }
+
+    /** @return the cached value of {@link #ENABLE_STYLE_INTERN}. */
+    public static boolean cachedStyleIntern() {
+        return cachedStyleIntern;
+    }
+
+    /** @return the cached value of {@link #ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH}. */
+    public static boolean cachedSpawnerDistancePatch() {
+        return cachedSpawnerDistancePatch;
+    }
+
+    /** @return the cached value of {@link #ENABLE_CHUNK_PACKET_RIGHT_SIZE}. */
+    public static boolean cachedChunkPacketRightSize() {
+        return cachedChunkPacketRightSize;
+    }
+
+    /**
+     * Re-reads every hot-path boolean from the live Forge config and
+     * publishes the result through the {@code volatile} cache fields.
+     *
+     * <p>Idempotent and safe to call repeatedly; intended for
+     * {@code ModInit.onConfigLoaded} (initial load) and any future
+     * runtime reload listener.</p>
+     */
+    public static void refreshHotPathCache() {
+        cachedPackedAabbPathCache = getBooleanOrDefault(ENABLE_PACKED_AABB_PATH_CACHE, true);
+        cachedCapabilityFastCompare = getBooleanOrDefault(ENABLE_CAPABILITY_FAST_COMPARE, true);
+        cachedRlToStringCache = getBooleanOrDefault(ENABLE_RESOURCELOCATION_TOSTRING_CACHE, true);
+        cachedLiteralContentsCache = getBooleanOrDefault(ENABLE_LITERAL_CONTENTS_CACHE, true);
+        cachedStyleIntern = getBooleanOrDefault(ENABLE_STYLE_INTERN, true);
+        cachedSpawnerDistancePatch = getBooleanOrDefault(ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH, true);
+        cachedChunkPacketRightSize = getBooleanOrDefault(ENABLE_CHUNK_PACKET_RIGHT_SIZE, true);
     }
 }
 

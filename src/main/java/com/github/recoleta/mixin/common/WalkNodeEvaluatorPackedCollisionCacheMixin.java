@@ -57,7 +57,7 @@ public abstract class WalkNodeEvaluatorPackedCollisionCacheMixin {
     private boolean recoleta$packedCollisionCacheLookup(final Object2BooleanMap<Object> map,
                                                          final Object key,
                                                          final Predicate<Object> predicate) {
-        if (!(key instanceof AABB box) || !MemoryConfig.ENABLE_PACKED_AABB_PATH_CACHE.get() || !recoleta$canPack(box)) {
+        if (!(key instanceof AABB box) || !MemoryConfig.cachedPackedAabbPathCache() || !recoleta$canPack(box)) {
             RecoletaCounters.PATH_PACKED_CACHE_FALLBACK.increment();
             return map.computeIfAbsent(key, predicate);
         }

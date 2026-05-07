@@ -53,7 +53,16 @@ public final class ModInit {
         registerPressureCallbacks();
 
         modBus.addListener(ModInit::onConfigLoaded);
+        modBus.addListener(ModInit::onConfigReloaded);
         modBus.addListener(LifecycleHandler::onCommonSetup);
+    }
+
+    private static void onConfigReloaded(final ModConfigEvent.Reloading event) {
+        final ModConfig config = event.getConfig();
+        if (!Recoleta.MODID.equals(config.getModId()) || config.getType() != ModConfig.Type.COMMON) {
+            return;
+        }
+        MemoryConfig.refreshHotPathCache();
     }
 
     private static void onConfigLoaded(final ModConfigEvent.Loading event) {
@@ -61,6 +70,7 @@ public final class ModInit {
         if (!Recoleta.MODID.equals(config.getModId()) || config.getType() != ModConfig.Type.COMMON) {
             return;
         }
+        MemoryConfig.refreshHotPathCache();
         MemoryEvents.install();
         logRuntimeBanner();
     }
@@ -72,12 +82,16 @@ public final class ModInit {
      * threshold. Without this method the entire pressure pipeline
      * would be inert.
      *
-     * <p>The two registered tasks are intentionally cheap and
-     * idempotent: trimming long-lived collection slack and draining
-     * every reference queue. Both can run repeatedly without harm.</p>
+     * <p>{@code SlackTrimmer::requestPressureTrim} only sets a flag,
+     * deferring the actual trim to the next server / client tick END
+     * phase on the owning thread. This avoids the concurrent-modification
+     * hazard of mutating fastutil hash tables from the JVM
+     * {@code MemoryMXBean} notification thread.
+     * {@code IncrementalCleaner::drainAll} polls reference queues, which
+     * is thread-safe.</p>
      */
     private static void registerPressureCallbacks() {
-        LowPauseScheduler.onPressure(SlackTrimmer::trimAllNow);
+        LowPauseScheduler.onPressure(SlackTrimmer::requestPressureTrim);
         LowPauseScheduler.onPressure(IncrementalCleaner::drainAll);
     }
 

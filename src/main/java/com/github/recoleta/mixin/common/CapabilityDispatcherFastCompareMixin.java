@@ -61,7 +61,7 @@ public abstract class CapabilityDispatcherFastCompareMixin {
             return true;
         }
 
-        if (!MemoryConfig.getBooleanOrDefault(MemoryConfig.ENABLE_CAPABILITY_FAST_COMPARE, true)) {
+        if (!MemoryConfig.cachedCapabilityFastCompare()) {
             // Faithful vanilla path.
             return ((CapabilityDispatcher) (Object) this).serializeNBT()
                     .equals(other.serializeNBT());

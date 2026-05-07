@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * Right-sizes the no-arg CompoundTag map for the common tiny-NBT case.
  */
-@Mixin(CompoundTag.class)
+@Mixin(value = CompoundTag.class, priority = 1100)
 public abstract class CompoundTagSmallMapMixin {
 
     @Mutable

@@ -33,7 +33,7 @@ public abstract class NaturalSpawnerSpawnDistanceMixin {
             return false;
         }
 
-        if (!MemoryConfig.ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH.get()) {
+        if (!MemoryConfig.cachedSpawnerDistancePatch()) {
             if (level.getSharedSpawnPos().closerToCenterThan(new Vec3((double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D), 24.0D)) {
                 return false;
             }
