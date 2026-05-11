@@ -46,15 +46,13 @@ public abstract class ModelDataManagerSmallSetsMixin {
      * Catches the {@code new HashSet<>()} inside the
      * {@code computeIfAbsent} lambda and supplies a 2-slot variant.
      *
-     * <p>The {@code method = "*"} wildcard targets the synthetic
-     * lambda body that {@code javac} emits for the
-     * {@code computeIfAbsent} argument; targeting it by exact synthetic
-     * name would break across Forge minor releases.</p>
+     * <p>The target is the synthetic lambda body that {@code javac}
+     * emits for the {@code computeIfAbsent} argument in Forge 47.4.x.</p>
      *
      * @return a small {@link HashSet}
      */
     @Redirect(
-            method = "*",
+            method = "lambda$requestRefresh$0",
             at = @At(value = "NEW", target = "java/util/HashSet"),
             require = 0, expect = 1
     )

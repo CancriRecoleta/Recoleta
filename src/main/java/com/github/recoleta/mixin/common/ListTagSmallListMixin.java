@@ -31,7 +31,7 @@ import java.util.ArrayList;
  * already receives a right-sized {@code Lists.newArrayListWithCapacity(i)}
  * argument that matches the decoded entry count.</p>
  */
-@Mixin(ListTag.class)
+@Mixin(value = ListTag.class, priority = 1100)
 public abstract class ListTagSmallListMixin {
 
     @Redirect(
