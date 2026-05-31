@@ -35,6 +35,18 @@ public final class RecoletaCounters {
     /** Counts {@code ClientboundLevelChunkPacketData} block-entity list right-sizes. */
     public static final LongAdder CHUNK_PACKET_LIST_RESIZE = new LongAdder();
 
+    /** Counts right-sized list allocations across the clientbound packet mixins. */
+    public static final LongAdder PACKET_LIST_RESIZE = new LongAdder();
+
+    /** Counts right-sized {@code MutableComponent} sibling-list allocations. */
+    public static final LongAdder COMPONENT_SIBLINGS_RESIZE = new LongAdder();
+
+    /** Counts right-sized list allocations inside brain AI sensors. */
+    public static final LongAdder AI_SENSOR_LIST_RESIZE = new LongAdder();
+
+    /** Counts {@code AbstractFurnaceBlockEntity.recipesUsed} small-map swaps. */
+    public static final LongAdder FURNACE_RECIPES_SMALL_MAP = new LongAdder();
+
     /** Counts packed AABB collision-cache hits in {@code WalkNodeEvaluator}. */
     public static final LongAdder PATH_PACKED_CACHE_HIT = new LongAdder();
 

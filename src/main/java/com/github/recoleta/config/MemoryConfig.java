@@ -81,6 +81,15 @@ public final class MemoryConfig {
     /** Initial capacity for ForgeRegistry's four HashBiMap fields. */
     public static final IntValue FORGE_REGISTRY_BIMAP_CAPACITY;
 
+    /** Right-sizes the lists clientbound game packets build on (de)serialization. */
+    public static final BooleanValue ENABLE_PACKET_RIGHT_SIZE;
+
+    /** Right-sizes the sibling list every {@code MutableComponent.create} allocates. */
+    public static final BooleanValue ENABLE_COMPONENT_SIBLINGS_RIGHT_SIZE;
+
+    /** Right-sizes the per-tick result lists brain AI sensors hand to {@code Brain}. */
+    public static final BooleanValue ENABLE_AI_SENSOR_RIGHT_SIZE;
+
     static {
         final ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.comment("Recoleta - memory reduction settings").push("memory");
@@ -216,6 +225,31 @@ public final class MemoryConfig {
                         "entries and you observe extra resize churn during startup.")
                 .defineInRange("forgeRegistryBiMapCapacity", 1024, 16, 65536);
 
+        ENABLE_PACKET_RIGHT_SIZE = b
+                .comment("Right-size the lists several clientbound game packets allocate via",
+                        "Lists.newArrayList() (set-equipment, update-attributes, light-update).",
+                        "Vanilla starts each at the JDK default of 10 slots even though the",
+                        "real payload is a handful of entries; these packets fire per entity",
+                        "and per chunk-light update, so the slack is paid thousands of times",
+                        "per second during normal play.")
+                .define("enablePacketRightSize", true);
+
+        ENABLE_COMPONENT_SIBLINGS_RIGHT_SIZE = b
+                .comment("Right-size the sibling list inside MutableComponent.create().",
+                        "Vanilla allocates a 10-slot ArrayList for every component even though",
+                        "the overwhelming majority of components (chat lines, tooltips, button",
+                        "labels) carry zero to two siblings. Starting at capacity 2 trims the",
+                        "resident slack on the millions of components a session builds.")
+                .define("enableComponentSiblingsRightSize", true);
+
+        ENABLE_AI_SENSOR_RIGHT_SIZE = b
+                .comment("Right-size the result lists brain AI sensors build each scan and hand",
+                        "to Brain memory (secondary-POI, piglin-specific). Vanilla uses",
+                        "Lists.newArrayList() (10 slots); the lists usually hold 0-4 entries and",
+                        "are retained as brain memory until the next sensor tick, so the slack",
+                        "multiplies by the loaded mob count.")
+                .define("enableAiSensorRightSize", true);
+
         b.pop();
         SPEC = b.build();
     }
@@ -269,6 +303,9 @@ public final class MemoryConfig {
     private static volatile boolean cachedStyleIntern = true;
     private static volatile boolean cachedSpawnerDistancePatch = true;
     private static volatile boolean cachedChunkPacketRightSize = true;
+    private static volatile boolean cachedPacketRightSize = true;
+    private static volatile boolean cachedComponentSiblingsRightSize = true;
+    private static volatile boolean cachedAiSensorRightSize = true;
 
     /** @return the cached value of {@link #ENABLE_PACKED_AABB_PATH_CACHE}. */
     public static boolean cachedPackedAabbPathCache() {
@@ -305,6 +342,21 @@ public final class MemoryConfig {
         return cachedChunkPacketRightSize;
     }
 
+    /** @return the cached value of {@link #ENABLE_PACKET_RIGHT_SIZE}. */
+    public static boolean cachedPacketRightSize() {
+        return cachedPacketRightSize;
+    }
+
+    /** @return the cached value of {@link #ENABLE_COMPONENT_SIBLINGS_RIGHT_SIZE}. */
+    public static boolean cachedComponentSiblingsRightSize() {
+        return cachedComponentSiblingsRightSize;
+    }
+
+    /** @return the cached value of {@link #ENABLE_AI_SENSOR_RIGHT_SIZE}. */
+    public static boolean cachedAiSensorRightSize() {
+        return cachedAiSensorRightSize;
+    }
+
     /**
      * Re-reads every hot-path boolean from the live Forge config and
      * publishes the result through the {@code volatile} cache fields.
@@ -321,6 +373,9 @@ public final class MemoryConfig {
         cachedStyleIntern = getBooleanOrDefault(ENABLE_STYLE_INTERN, true);
         cachedSpawnerDistancePatch = getBooleanOrDefault(ENABLE_SPAWNER_DISTANCE_ALLOCATION_PATCH, true);
         cachedChunkPacketRightSize = getBooleanOrDefault(ENABLE_CHUNK_PACKET_RIGHT_SIZE, true);
+        cachedPacketRightSize = getBooleanOrDefault(ENABLE_PACKET_RIGHT_SIZE, true);
+        cachedComponentSiblingsRightSize = getBooleanOrDefault(ENABLE_COMPONENT_SIBLINGS_RIGHT_SIZE, true);
+        cachedAiSensorRightSize = getBooleanOrDefault(ENABLE_AI_SENSOR_RIGHT_SIZE, true);
     }
 }
 

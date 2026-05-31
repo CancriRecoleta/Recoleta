@@ -143,6 +143,19 @@ public final class MemoryCommand {
         send(src, ChatFormatting.GRAY, "  Cap compare   : " + (MemoryConfig.ENABLE_CAPABILITY_FAST_COMPARE.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, "  Chunk pkt list: " + (MemoryConfig.ENABLE_CHUNK_PACKET_RIGHT_SIZE.get() ? "ENABLED" : "disabled"));
         send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Packet lists  : %s  (resized=%d)",
+                MemoryConfig.ENABLE_PACKET_RIGHT_SIZE.get() ? "ENABLED" : "disabled",
+                RecoletaCounters.PACKET_LIST_RESIZE.sum()));
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  Comp siblings : %s  (resized=%d)",
+                MemoryConfig.ENABLE_COMPONENT_SIBLINGS_RIGHT_SIZE.get() ? "ENABLED" : "disabled",
+                RecoletaCounters.COMPONENT_SIBLINGS_RESIZE.sum()));
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
+                "  AI sensors    : %s  (resized=%d)",
+                MemoryConfig.ENABLE_AI_SENSOR_RIGHT_SIZE.get() ? "ENABLED" : "disabled",
+                RecoletaCounters.AI_SENSOR_LIST_RESIZE.sum()));
+        send(src, ChatFormatting.GRAY, "  Furnace maps  : swapped=" + RecoletaCounters.FURNACE_RECIPES_SMALL_MAP.sum());
+        send(src, ChatFormatting.GRAY, String.format(Locale.ROOT,
                 "  Pool mPos     : acq=%d rel=%d inUse~%d cached(tl)=%d",
                 MutableBlockPosPool.acquireCount(),
                 MutableBlockPosPool.releaseCount(),
