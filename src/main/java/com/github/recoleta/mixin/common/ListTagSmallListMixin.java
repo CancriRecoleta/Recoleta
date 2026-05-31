@@ -48,5 +48,3 @@ public abstract class ListTagSmallListMixin {
         return new ArrayList<>(4);
     }
 }
-
-

@@ -70,7 +70,9 @@ public final class SlackTrimmer {
         @SuppressWarnings("unchecked")
         boolean run() {
             final Object live = target.get();
-            if (live == null) return false;
+            if (live == null) {
+                return false;
+            }
             ((Consumer<Object>) action).accept(live);
             return true;
         }
@@ -184,30 +186,42 @@ public final class SlackTrimmer {
 
     @SubscribeEvent
     public static void onServerTick(final TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) return;
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) {
+            return;
+        }
         if (serverTrimRequested) {
             serverTrimRequested = false;
             serverTickCounter = 0;
             trimServerNow();
             return;
         }
-        if (++serverTickCounter < TRIM_INTERVAL_TICKS) return;
+        if (++serverTickCounter < TRIM_INTERVAL_TICKS) {
+            return;
+        }
         serverTickCounter = 0;
         trimServerNow();
     }
 
     @SubscribeEvent
     public static void onClientTick(final TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) return;
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        if (!MemoryConfig.ENABLE_SLACK_TRIMMER.get()) {
+            return;
+        }
         if (clientTrimRequested) {
             clientTrimRequested = false;
             clientTickCounter = 0;
             trimClientNow();
             return;
         }
-        if (++clientTickCounter < TRIM_INTERVAL_TICKS) return;
+        if (++clientTickCounter < TRIM_INTERVAL_TICKS) {
+            return;
+        }
         clientTickCounter = 0;
         trimClientNow();
     }
@@ -258,13 +272,17 @@ public final class SlackTrimmer {
     public static void trimServerNow() {
         SERVER_ARRAY_LISTS.removeIf(ref -> {
             final ArrayList<?> live = ref.get();
-            if (live == null) return true;
+            if (live == null) {
+                return true;
+            }
             live.trimToSize();
             return false;
         });
         SERVER_STRING_BUILDERS.removeIf(ref -> {
             final StringBuilder live = ref.get();
-            if (live == null) return true;
+            if (live == null) {
+                return true;
+            }
             live.trimToSize();
             return false;
         });
@@ -278,7 +296,9 @@ public final class SlackTrimmer {
     public static void trimClientNow() {
         CLIENT_ARRAY_LISTS.removeIf(ref -> {
             final ArrayList<?> live = ref.get();
-            if (live == null) return true;
+            if (live == null) {
+                return true;
+            }
             live.trimToSize();
             return false;
         });

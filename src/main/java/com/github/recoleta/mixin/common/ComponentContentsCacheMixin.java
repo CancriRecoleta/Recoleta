@@ -102,7 +102,9 @@ public abstract class ComponentContentsCacheMixin {
 
     private static LiteralContents recoleta$cacheLiteral(final LiteralContents lc) {
         final String text = lc.text();
-        if (text == null) return lc;
+        if (text == null) {
+            return lc;
+        }
         final LiteralContents cached = RecoletaCaches.LITERAL_CONTENTS.get(text);
         if (cached != null) {
             RecoletaCounters.LITERAL_CONTENTS_CACHE_HIT.increment();
@@ -120,11 +122,17 @@ public abstract class ComponentContentsCacheMixin {
      * array and the hit rate would be low.
      */
     private static TranslatableContents recoleta$cacheTranslatable(final TranslatableContents tc) {
-        if (tc.getFallback() != null) return tc;
+        if (tc.getFallback() != null) {
+            return tc;
+        }
         final Object[] args = tc.getArgs();
-        if (args == null || args.length != 0) return tc;
+        if (args == null || args.length != 0) {
+            return tc;
+        }
         final String key = tc.getKey();
-        if (key == null) return tc;
+        if (key == null) {
+            return tc;
+        }
         final TranslatableContents cached = RecoletaCaches.TRANSLATABLE_CONTENTS.get(key);
         if (cached != null) {
             RecoletaCounters.TRANSLATABLE_CONTENTS_CACHE_HIT.increment();
@@ -137,7 +145,9 @@ public abstract class ComponentContentsCacheMixin {
 
     private static KeybindContents recoleta$cacheKeybind(final KeybindContents kc) {
         final String name = kc.getName();
-        if (name == null) return kc;
+        if (name == null) {
+            return kc;
+        }
         final KeybindContents cached = RecoletaCaches.KEYBIND_CONTENTS.get(name);
         if (cached != null) {
             RecoletaCounters.KEYBIND_CONTENTS_CACHE_HIT.increment();
@@ -172,7 +182,9 @@ public abstract class ComponentContentsCacheMixin {
      * content equality unstable.
      */
     private static SelectorContents recoleta$cacheSelector(final SelectorContents sel) {
-        if (sel.getSeparator().isPresent()) return sel;
+        if (sel.getSeparator().isPresent()) {
+            return sel;
+        }
         final SelectorContents cached = RecoletaCaches.SELECTOR_CONTENTS.get(sel);
         if (cached != null) {
             RecoletaCounters.SELECTOR_CONTENTS_CACHE_HIT.increment();
@@ -188,7 +200,9 @@ public abstract class ComponentContentsCacheMixin {
      * caveat as {@code SelectorContents}.
      */
     private static NbtContents recoleta$cacheNbt(final NbtContents nc) {
-        if (nc.getSeparator().isPresent()) return nc;
+        if (nc.getSeparator().isPresent()) {
+            return nc;
+        }
         final NbtContents cached = RecoletaCaches.NBT_CONTENTS.get(nc);
         if (cached != null) {
             RecoletaCounters.NBT_CONTENTS_CACHE_HIT.increment();

@@ -89,10 +89,16 @@ public final class MemoryEvents {
         }
 
         for (final MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
-            if (pool.getType() != MemoryType.HEAP) continue;
-            if (!pool.isUsageThresholdSupported()) continue;
+            if (pool.getType() != MemoryType.HEAP) {
+                continue;
+            }
+            if (!pool.isUsageThresholdSupported()) {
+                continue;
+            }
             final long max = pool.getUsage().getMax();
-            if (max <= 0L) continue;
+            if (max <= 0L) {
+                continue;
+            }
             final long threshold = (long) (max * MemoryConfig.PRESSURE_RATIO.get());
             pool.setUsageThreshold(threshold);
             ModInit.LOG.info("Recoleta pressure threshold on {} = {} bytes ({}%)",
@@ -134,8 +140,12 @@ public final class MemoryEvents {
         listener = null;
 
         for (final MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
-            if (pool.getType() != MemoryType.HEAP) continue;
-            if (!pool.isUsageThresholdSupported()) continue;
+            if (pool.getType() != MemoryType.HEAP) {
+                continue;
+            }
+            if (!pool.isUsageThresholdSupported()) {
+                continue;
+            }
             try {
                 pool.setUsageThreshold(0L);
             } catch (final IllegalArgumentException ignored) {
@@ -154,16 +164,24 @@ public final class MemoryEvents {
 
     @SubscribeEvent
     public static void onServerTick(final TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (++serverTickCounter < POLL_INTERVAL_TICKS) return;
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        if (++serverTickCounter < POLL_INTERVAL_TICKS) {
+            return;
+        }
         serverTickCounter = 0;
         pollHeapState();
     }
 
     @SubscribeEvent
     public static void onClientTick(final TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (++clientTickCounter < POLL_INTERVAL_TICKS) return;
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        if (++clientTickCounter < POLL_INTERVAL_TICKS) {
+            return;
+        }
         clientTickCounter = 0;
         pollHeapState();
     }
@@ -189,8 +207,12 @@ public final class MemoryEvents {
      * </ul>
      */
     private static void pollHeapState() {
-        if (!installed) return;
-        if (!MemoryConfig.ENABLE_PRESSURE_EVICTION.get()) return;
+        if (!installed) {
+            return;
+        }
+        if (!MemoryConfig.ENABLE_PRESSURE_EVICTION.get()) {
+            return;
+        }
 
         final double pressureRatio = MemoryConfig.PRESSURE_RATIO.get();
         final double recoveryRatio = pressureRatio * RECOVERY_BAND;
@@ -200,11 +222,17 @@ public final class MemoryEvents {
         boolean anyChecked = false;
 
         for (final MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
-            if (pool.getType() != MemoryType.HEAP) continue;
-            if (!pool.isUsageThresholdSupported()) continue;
+            if (pool.getType() != MemoryType.HEAP) {
+                continue;
+            }
+            if (!pool.isUsageThresholdSupported()) {
+                continue;
+            }
             final MemoryUsage usage = pool.getUsage();
             final long max = usage.getMax();
-            if (max <= 0L) continue;
+            if (max <= 0L) {
+                continue;
+            }
             anyChecked = true;
             final double ratio = (double) usage.getUsed() / (double) max;
             if (ratio >= pressureRatio) {
@@ -215,7 +243,9 @@ public final class MemoryEvents {
             }
         }
 
-        if (!anyChecked) return;
+        if (!anyChecked) {
+            return;
+        }
         if (anyOverPressure) {
             LowPauseScheduler.dispatch(true);
         } else if (allBelowRecovery) {

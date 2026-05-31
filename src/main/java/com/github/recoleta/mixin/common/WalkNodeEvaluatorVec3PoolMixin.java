@@ -63,5 +63,3 @@ public abstract class WalkNodeEvaluatorVec3PoolMixin {
         }
     }
 }
-
-

@@ -87,8 +87,12 @@ public final class PackedAabb {
      */
     private static short quantiseShort(final double value) {
         final long q = Math.round(value / UNIT);
-        if (q > Short.MAX_VALUE) return Short.MAX_VALUE;
-        if (q < Short.MIN_VALUE) return Short.MIN_VALUE;
+        if (q > Short.MAX_VALUE) {
+            return Short.MAX_VALUE;
+        }
+        if (q < Short.MIN_VALUE) {
+            return Short.MIN_VALUE;
+        }
         return (short) q;
     }
 
