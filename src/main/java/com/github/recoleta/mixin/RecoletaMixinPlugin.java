@@ -11,6 +11,10 @@ import java.util.Set;
 
 public final class RecoletaMixinPlugin implements IMixinConfigPlugin {
     private static final String LIST_TAG_SMALL_LIST_MIXIN = "com.github.recoleta.mixin.common.ListTagSmallListMixin";
+    private static final Set<String> KUBEJS_UNSAFE_COMPONENT_MIXINS = Set.of(
+            "com.github.recoleta.mixin.common.ComponentContentsCacheMixin",
+            "com.github.recoleta.mixin.common.MutableComponentStyleInternMixin"
+    );
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -25,6 +29,9 @@ public final class RecoletaMixinPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (LIST_TAG_SMALL_LIST_MIXIN.equals(mixinClassName)) {
             return !isC2meLoaded();
+        }
+        if (KUBEJS_UNSAFE_COMPONENT_MIXINS.contains(mixinClassName)) {
+            return !isModLoaded("kubejs");
         }
         return true;
     }
@@ -53,6 +60,19 @@ public final class RecoletaMixinPlugin implements IMixinConfigPlugin {
         }
         for (ModInfo mod : loadingModList.getMods()) {
             if (mod.getModId().startsWith("c2me")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isModLoaded(String modId) {
+        LoadingModList loadingModList = LoadingModList.get();
+        if (loadingModList == null) {
+            return false;
+        }
+        for (ModInfo mod : loadingModList.getMods()) {
+            if (modId.equals(mod.getModId())) {
                 return true;
             }
         }
