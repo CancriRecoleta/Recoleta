@@ -31,8 +31,8 @@ public abstract class SecondaryPoiSensorSmallListMixin {
             method = "doTick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/npc/Villager;)V",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/google/common/collect/Lists;newArrayList()Ljava/util/ArrayList;"),
-            remap = false)
+                    target = "Lcom/google/common/collect/Lists;newArrayList()Ljava/util/ArrayList;",
+                    remap = false))
     private ArrayList<Object> recoleta$smallSecondaryPoiList() {
         if (!MemoryConfig.cachedAiSensorRightSize()) {
             return Lists.newArrayList();

@@ -38,8 +38,8 @@ public abstract class MutableComponentSiblingsSmallListMixin {
             method = "create(Lnet/minecraft/network/chat/ComponentContents;)Lnet/minecraft/network/chat/MutableComponent;",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/google/common/collect/Lists;newArrayList()Ljava/util/ArrayList;"),
-            remap = false)
+                    target = "Lcom/google/common/collect/Lists;newArrayList()Ljava/util/ArrayList;",
+                    remap = false))
     private static ArrayList<Object> recoleta$smallSiblingList() {
         if (!MemoryConfig.cachedComponentSiblingsRightSize()) {
             return Lists.newArrayList();
